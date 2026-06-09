@@ -81,12 +81,12 @@ function DashboardSkeleton() {
 }
 
 const tooltipStyle = {
-  background: '#141418',
-  border: '1px solid rgba(255,255,255,0.06)',
+  background: '#ffffff',
+  border: '1px solid rgba(0,0,0,0.06)',
   borderRadius: '10px',
-  color: '#fafafa',
+  color: '#09090b',
   fontSize: '12px',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
 };
 
 export default function Dashboard() {
@@ -162,26 +162,26 @@ export default function Dashboard() {
         <StatCard
           label="Scam reports"
           value={data?.total_scams_indexed ?? 0}
-          icon={<Database size={16} weight="bold" className="text-red-400" />}
-          accentColor="bg-red-500/10"
+          icon={<Database size={16} weight="bold" className="text-red-600" />}
+          accentColor="bg-red-100"
         />
         <StatCard
           label="Policies indexed"
           value={data?.total_policies_indexed ?? 0}
-          icon={<Shield size={16} weight="bold" className="text-emerald-400" />}
-          accentColor="bg-emerald-500/10"
+          icon={<Shield size={16} weight="bold" className="text-emerald-600" />}
+          accentColor="bg-emerald-100"
         />
         <StatCard
           label="Flagged agencies"
           value={agencies.length}
-          icon={<Warning size={16} weight="bold" className="text-amber-400" />}
-          accentColor="bg-amber-500/10"
+          icon={<Warning size={16} weight="bold" className="text-amber-600" />}
+          accentColor="bg-amber-100"
         />
         <StatCard
           label="Shared phones"
           value={phones.length}
-          icon={<Phone size={16} weight="bold" className="text-violet-400" />}
-          accentColor="bg-violet-500/10"
+          icon={<Phone size={16} weight="bold" className="text-violet-600" />}
+          accentColor="bg-violet-100"
         />
       </div>
 
@@ -194,9 +194,9 @@ export default function Dashboard() {
           {barData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={barData}>
-                <XAxis dataKey="corridor" tick={{ fill: '#82828c', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#82828c', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                <XAxis dataKey="corridor" tick={{ fill: '#71717a', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
                 <Bar dataKey="reports" radius={[4, 4, 0, 0]}>
                   {barData.map((entry, i) => (
                     <Cell key={i} fill={CORRIDOR_COLORS[entry.corridor] || '#82828c'} />
@@ -218,16 +218,16 @@ export default function Dashboard() {
           {areaData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={areaData}>
-                <XAxis dataKey="month" tick={{ fill: '#82828c', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#82828c', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'rgba(255,255,255,0.06)' }} />
+                <XAxis dataKey="month" tick={{ fill: '#71717a', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#71717a', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'rgba(0,0,0,0.06)' }} />
                 <defs>
                   <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#18181b" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#18181b" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <Area type="monotone" dataKey="reports" stroke="#10b981" fill="url(#trendGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="reports" stroke="#18181b" fill="url(#trendGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -264,7 +264,7 @@ export default function Dashboard() {
                 ) : agencies.map((a, i) => (
                   <tr key={i} className="border-t border-[var(--border)] hover:bg-[var(--surface-2)]/50 transition-colors">
                     <td className="py-3 text-[var(--text-primary)] text-sm">{String(a.agency_name || 'Unknown')}</td>
-                    <td className="py-3 text-right text-orange-400 font-mono tabular-nums text-sm">{String(a.report_count || 0)}</td>
+                    <td className="py-3 text-right text-orange-600 font-mono tabular-nums text-sm">{String(a.report_count || 0)}</td>
                     <td className="py-3 text-right text-[var(--text-secondary)] font-mono tabular-nums text-sm">{Number(a.avg_confidence || 0).toFixed(1)}</td>
                     <td className="py-3 text-right text-[var(--text-muted)] text-sm">{String(a.corridors || 0)}</td>
                   </tr>
@@ -297,7 +297,7 @@ export default function Dashboard() {
                 ) : phones.map((p, i) => (
                   <tr key={i} className="border-t border-[var(--border)] hover:bg-[var(--surface-2)]/50 transition-colors">
                     <td className="py-3 text-[var(--text-primary)] font-mono tabular-nums text-sm">{String(p.phone || 'N/A')}</td>
-                    <td className="py-3 text-right text-violet-400 font-mono tabular-nums text-sm">{String(p.agency_count || 0)}</td>
+                    <td className="py-3 text-right text-violet-600 font-mono tabular-nums text-sm">{String(p.agency_count || 0)}</td>
                     <td className="py-3 text-right text-[var(--text-secondary)] font-mono tabular-nums text-sm">{String(p.post_count || 0)}</td>
                   </tr>
                 ))}
@@ -315,10 +315,10 @@ export default function Dashboard() {
           </h3>
           <div className="space-y-2">
             {data.recent_policy_changes.map((change, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
+              <div key={i} className="flex items-start gap-3 p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-2 shrink-0" />
                 <div className="text-sm">
-                  <span className="font-medium text-emerald-400">{change.route}</span>
+                  <span className="font-medium text-emerald-700">{change.route}</span>
                   <span className="text-[var(--text-muted)] mx-2">-</span>
                   <span className="text-[var(--text-secondary)]">{change.diff_summary}</span>
                   <span className="text-[var(--text-muted)] text-xs ml-2">{change.snapshot_date}</span>
