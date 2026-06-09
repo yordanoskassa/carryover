@@ -45,7 +45,7 @@ export default function NewsTicker({ nationality }: { nationality: string }) {
   ));
 
   return (
-    <div className="h-8 bg-zinc-950 text-zinc-300 text-xs font-mono flex items-center overflow-hidden">
+    <div className="h-8 bg-card border-b text-muted-foreground text-xs font-mono flex items-center overflow-hidden">
       <div className="ticker-track">
         {content}
         {content}

@@ -14,12 +14,12 @@ const CORRIDOR_COLORS: Record<string, string> = {
 };
 
 const tooltipStyle = {
-  background: '#ffffff',
-  border: '1px solid rgba(0,0,0,0.06)',
+  background: '#1a2035',
+  border: '1px solid rgba(255,255,255,0.08)',
   borderRadius: '8px',
-  color: '#09090b',
+  color: '#e2e8f0',
   fontSize: '11px',
-  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
   padding: '6px 10px',
 };
 
@@ -104,8 +104,8 @@ export default function Dashboard({ onStats }: { onStats?: (stats: DashboardStat
           {barData.length > 0 ? (
             <ResponsiveContainer width="100%" height={130}>
               <BarChart data={barData}>
-                <XAxis dataKey="corridor" tick={{ fill: '#71717a', fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#71717a', fontSize: 9 }} axisLine={false} tickLine={false} width={25} />
+                <XAxis dataKey="corridor" tick={{ fill: '#8b949e', fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#8b949e', fontSize: 9 }} axisLine={false} tickLine={false} width={25} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
                 <Bar dataKey="reports" radius={[3, 3, 0, 0]}>
                   {barData.map((entry, i) => (
@@ -124,16 +124,16 @@ export default function Dashboard({ onStats }: { onStats?: (stats: DashboardStat
           {areaData.length > 0 ? (
             <ResponsiveContainer width="100%" height={130}>
               <AreaChart data={areaData}>
-                <XAxis dataKey="month" tick={{ fill: '#71717a', fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#71717a', fontSize: 9 }} axisLine={false} tickLine={false} width={25} />
+                <XAxis dataKey="month" tick={{ fill: '#8b949e', fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#8b949e', fontSize: 9 }} axisLine={false} tickLine={false} width={25} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'rgba(0,0,0,0.06)' }} />
                 <defs>
                   <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#18181b" stopOpacity={0.12} />
-                    <stop offset="100%" stopColor="#18181b" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#00d4aa" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#00d4aa" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <Area type="monotone" dataKey="reports" stroke="#18181b" fill="url(#trendGrad)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="reports" stroke="#00d4aa" fill="url(#trendGrad)" strokeWidth={1.5} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
