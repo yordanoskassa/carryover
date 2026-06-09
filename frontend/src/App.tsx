@@ -1,20 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Eye } from '@phosphor-icons/react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Eye, Database, Shield, Warning, Phone } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
-import Globe from './components/Globe';
+import NewsTicker from './components/NewsTicker';
 import Advisor from './components/Advisor';
 import Inspector from './components/Inspector';
-import Dashboard from './components/Dashboard';
+import Dashboard, { type DashboardStats } from './components/Dashboard';
 import VisaOverview from './components/VisaOverview';
 import './index.css';
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
-}
 
 function countryFlag(code: string): string {
   return code
@@ -48,23 +40,41 @@ const DESTINATIONS = [
   { code: 'SE', name: 'Sweden' },
 ];
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function StatPill({ icon, value, label }: { icon: React.ReactNode; value: string | number; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      {icon}
+      <span className="font-bold tabular-nums text-foreground">{typeof value === 'number' ? value.toLocaleString() : value}</span>
+      <span className="hidden sm:inline">{label}</span>
+    </div>
+  );
+}
+
 export default function App() {
   const [nationality, setNationality] = useState('ET');
   const [destination, setDestination] = useState('GB');
   const [name, setName] = useState(() => localStorage.getItem('ep_name') || '');
   const [editingName, setEditingName] = useState(false);
+  const [stats, setStats] = useState<DashboardStats>({ scams: 0, policies: 0, flaggedAgencies: 0, sharedPhones: 0 });
 
   useEffect(() => {
     if (name) localStorage.setItem('ep_name', name);
   }, [name]);
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground">
-      {/* Header */}
-      <header className="border-b bg-background/90 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Eye size={20} weight="bold" />
+    <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden">
+      {/* Header - 48px */}
+      <header className="border-b bg-background/90 backdrop-blur-xl shrink-0 z-50">
+        <div className="max-w-[1600px] mx-auto px-4 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye size={18} weight="bold" />
             <span className="text-sm font-semibold tracking-tight">ElastiPath</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -74,131 +84,101 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-6">
-        {/* Hero */}
-        <section className="py-10 lg:py-14">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
-                  {getGreeting()}
-                  {name ? `, ${name}` : ''}.
-                </h1>
-                {!name && !editingName && (
-                  <button
-                    onClick={() => setEditingName(true)}
-                    className="text-sm text-muted-foreground mt-1.5 hover:text-foreground transition-colors underline underline-offset-4 decoration-border"
-                  >
-                    Set your name
-                  </button>
-                )}
-                {editingName && (
-                  <form
-                    className="flex items-center gap-2 mt-2"
-                    onSubmit={(e) => { e.preventDefault(); setEditingName(false); }}
-                  >
-                    <input
-                      autoFocus
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Your first name"
-                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                    />
-                    <Button size="sm" type="submit">Save</Button>
-                  </form>
-                )}
-                {name && !editingName && (
-                  <button
-                    onClick={() => setEditingName(true)}
-                    className="text-sm text-muted-foreground mt-1.5 block hover:text-foreground transition-colors"
-                  >
-                    Verify visa requirements and check agencies before you travel.
-                  </button>
-                )}
-                {!name && !editingName && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Verify visa requirements and check agencies before you travel.
-                  </p>
-                )}
-              </div>
+      {/* Ticker - 32px */}
+      <NewsTicker nationality={nationality} />
 
-              {/* Route selector */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl leading-none">{countryFlag(nationality)}</span>
-                  <div className="flex-1">
-                    <label className="block text-xs text-muted-foreground mb-1">I'm from</label>
-                    <select
-                      value={nationality}
-                      onChange={(e) => setNationality(e.target.value)}
-                      className="w-full h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 appearance-none cursor-pointer"
-                    >
-                      {COUNTRIES.map((c) => (
-                        <option key={c.code} value={c.code}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+      {/* Top bar - 48px: greeting + route selectors + stats */}
+      <div className="border-b shrink-0">
+        <div className="max-w-[1600px] mx-auto px-4 h-12 flex items-center gap-4">
+          {/* Greeting + name */}
+          <div className="flex items-center gap-2 shrink-0">
+            {editingName ? (
+              <form
+                className="flex items-center gap-1.5"
+                onSubmit={(e) => { e.preventDefault(); setEditingName(false); }}
+              >
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className="h-6 w-24 rounded border border-input bg-transparent px-1.5 text-xs outline-none focus-visible:border-ring"
+                />
+                <Button size="xs" type="submit" className="h-6 text-[10px]">OK</Button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setEditingName(true)}
+                className="text-sm font-medium hover:text-foreground/70 transition-colors"
+              >
+                {getGreeting()}{name ? `, ${name}` : ''}.
+              </button>
+            )}
+          </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl leading-none">{countryFlag(destination)}</span>
-                  <div className="flex-1">
-                    <label className="block text-xs text-muted-foreground mb-1">Going to</label>
-                    <select
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      className="w-full h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 appearance-none cursor-pointer"
-                    >
-                      {DESTINATIONS.map((c) => (
-                        <option key={c.code} value={c.code}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
+          {/* Route selectors */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-sm">{countryFlag(nationality)}</span>
+            <select
+              value={nationality}
+              onChange={(e) => setNationality(e.target.value)}
+              className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs outline-none appearance-none cursor-pointer"
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+            <span className="text-xs text-muted-foreground">→</span>
+            <span className="text-sm">{countryFlag(destination)}</span>
+            <select
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs outline-none appearance-none cursor-pointer"
+            >
+              {DESTINATIONS.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Divider */}
+          <div className="h-5 w-px bg-border shrink-0" />
+
+          {/* Stats */}
+          <div className="flex items-center gap-4 overflow-x-auto">
+            <StatPill icon={<Database size={12} weight="bold" className="text-red-500" />} value={stats.scams} label="Reports" />
+            <StatPill icon={<Shield size={12} weight="bold" className="text-emerald-500" />} value={stats.policies} label="Policies" />
+            <StatPill icon={<Warning size={12} weight="bold" className="text-amber-500" />} value={stats.flaggedAgencies} label="Flagged" />
+            <StatPill icon={<Phone size={12} weight="bold" className="text-violet-500" />} value={stats.sharedPhones} label="Phones" />
+          </div>
+        </div>
+      </div>
+
+      {/* Main content - fills remaining space */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="max-w-[1600px] mx-auto px-4 py-3 space-y-3">
+          {/* 3-column main panel */}
+          <div className="grid grid-cols-12 gap-3" style={{ minHeight: '380px' }}>
+            {/* Openness sidebar - narrow */}
+            <div className="col-span-2 border rounded-lg p-3 overflow-y-auto">
+              <VisaOverview nationality={nationality} />
             </div>
 
-            {/* Globe */}
-            <div className="flex justify-center lg:justify-end">
-              <Globe nationality={nationality} destination={destination} />
+            {/* Advisor - mid */}
+            <div className="col-span-5 border rounded-lg p-3 overflow-hidden">
+              <Advisor nationality={nationality} destination={destination} />
+            </div>
+
+            {/* Inspector - mid */}
+            <div className="col-span-5 border rounded-lg p-3 overflow-hidden">
+              <Inspector />
             </div>
           </div>
-        </section>
 
-        {/* Visa overview + News */}
-        <section className="pb-10">
-          <VisaOverview nationality={nationality} />
-        </section>
-
-        {/* Advisor */}
-        <section className="border-t py-10">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Visa Requirements</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Advisor nationality={nationality} destination={destination} />
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Inspector */}
-        <section className="border-t py-10">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Check an Agency</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Inspector />
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Dashboard */}
-        <section className="border-t py-10">
-          <Dashboard />
-        </section>
-      </main>
+          {/* Charts + tables (Dashboard) */}
+          <Dashboard onStats={setStats} />
+        </div>
+      </div>
     </div>
   );
 }
