@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts';
-import { Database, Warning, Phone, ArrowsClockwise, CircleNotch, Shield } from '@phosphor-icons/react';
+import { Database, Warning, Phone, ArrowsClockwise, Shield } from '@phosphor-icons/react';
 import { getDashboard, getFlaggedAgencies, getFlaggedPhones, type DashboardData } from '../api';
 
 const CORRIDOR_COLORS: Record<string, string> = {
@@ -13,22 +12,16 @@ const CORRIDOR_COLORS: Record<string, string> = {
   'IN->CA': '#f97316',
 };
 
-function StatCard({ label, value, icon, accentColor, index }: {
+function StatCard({ label, value, icon, accentColor }: {
   label: string;
   value: string | number;
   icon: React.ReactNode;
   accentColor: string;
-  index: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
-    >
+    <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-medium text-[var(--text-muted)]">{label}</span>
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accentColor}`}>
           {icon}
         </div>
@@ -36,15 +29,62 @@ function StatCard({ label, value, icon, accentColor, index }: {
       <div className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">
         {typeof value === 'number' ? value.toLocaleString() : value}
       </div>
-    </motion.div>
+    </div>
+  );
+}
+
+function SkeletonBlock({ className }: { className: string }) {
+  return <div className={`bg-[var(--surface-2)] rounded-lg animate-pulse ${className}`} />;
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <SkeletonBlock className="h-7 w-48 mb-2" />
+          <SkeletonBlock className="h-4 w-72" />
+        </div>
+        <SkeletonBlock className="h-9 w-24" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <SkeletonBlock className="h-3 w-20" />
+              <SkeletonBlock className="h-8 w-8" />
+            </div>
+            <SkeletonBlock className="h-8 w-16" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[0, 1].map((i) => (
+          <div key={i} className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+            <SkeletonBlock className="h-4 w-36 mb-5" />
+            <SkeletonBlock className="h-60 w-full" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[0, 1].map((i) => (
+          <div key={i} className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+            <SkeletonBlock className="h-4 w-36 mb-4" />
+            <div className="space-y-3">
+              {[0, 1, 2].map((j) => <SkeletonBlock key={j} className="h-10 w-full" />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
 const tooltipStyle = {
-  background: 'var(--surface-2)',
-  border: '1px solid var(--border)',
+  background: '#141418',
+  border: '1px solid rgba(255,255,255,0.06)',
   borderRadius: '10px',
-  color: 'var(--text-primary)',
+  color: '#fafafa',
   fontSize: '12px',
   boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
 };
@@ -75,13 +115,7 @@ export default function Dashboard() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <CircleNotch size={28} className="animate-spin text-emerald-400" />
-      </div>
-    );
-  }
+  if (loading) return <DashboardSkeleton />;
 
   const corridorChartData = data?.corridor_stats
     .reduce<Record<string, { corridor: string; reports: number; agencies: number }>>((acc, s) => {
@@ -107,7 +141,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
             Threat Intelligence
           </h2>
           <p className="text-sm text-[var(--text-muted)] mt-1.5">
@@ -126,56 +160,46 @@ export default function Dashboard() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
-          label="Scam Reports"
+          label="Scam reports"
           value={data?.total_scams_indexed ?? 0}
           icon={<Database size={16} weight="bold" className="text-red-400" />}
           accentColor="bg-red-500/10"
-          index={0}
         />
         <StatCard
-          label="Policies Indexed"
+          label="Policies indexed"
           value={data?.total_policies_indexed ?? 0}
           icon={<Shield size={16} weight="bold" className="text-emerald-400" />}
           accentColor="bg-emerald-500/10"
-          index={1}
         />
         <StatCard
-          label="Flagged Agencies"
+          label="Flagged agencies"
           value={agencies.length}
           icon={<Warning size={16} weight="bold" className="text-amber-400" />}
           accentColor="bg-amber-500/10"
-          index={2}
         />
         <StatCard
-          label="Shared Phones"
+          label="Shared phones"
           value={phones.length}
           icon={<Phone size={16} weight="bold" className="text-violet-400" />}
           accentColor="bg-violet-500/10"
-          index={3}
         />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Reports by corridor */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
-        >
-          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-5 uppercase tracking-wider">
-            Reports by Corridor
+        <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-5">
+            Reports by corridor
           </h3>
           {barData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={barData}>
-                <XAxis dataKey="corridor" tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="corridor" tick={{ fill: '#82828c', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#82828c', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
-                <Bar dataKey="reports" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="reports" radius={[4, 4, 0, 0]}>
                   {barData.map((entry, i) => (
-                    <Cell key={i} fill={CORRIDOR_COLORS[entry.corridor] || '#52525b'} />
+                    <Cell key={i} fill={CORRIDOR_COLORS[entry.corridor] || '#82828c'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -185,23 +209,17 @@ export default function Dashboard() {
               No data yet
             </div>
           )}
-        </motion.div>
+        </div>
 
-        {/* Trend over time */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
-        >
-          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-5 uppercase tracking-wider">
-            Report Trend
+        <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-5">
+            Report trend
           </h3>
           {areaData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={areaData}>
-                <XAxis dataKey="month" tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="month" tick={{ fill: '#82828c', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#82828c', fontSize: 11, fontFamily: 'Geist Mono Variable, monospace' }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'rgba(255,255,255,0.06)' }} />
                 <defs>
                   <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
@@ -217,25 +235,19 @@ export default function Dashboard() {
               No data yet
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Flagged agencies */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
-        >
-          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-4 uppercase tracking-wider">
-            Flagged Agencies
+        <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4">
+            Flagged agencies
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">
+                <tr className="text-[var(--text-muted)] text-xs">
                   <th className="text-left py-2.5 font-medium">Agency</th>
                   <th className="text-right py-2.5 font-medium">Reports</th>
                   <th className="text-right py-2.5 font-medium">Conf.</th>
@@ -260,22 +272,16 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Shared phone numbers */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
-        >
-          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-4 uppercase tracking-wider">
-            Shared Phone Numbers
+        <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4">
+            Shared phone numbers
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">
+                <tr className="text-[var(--text-muted)] text-xs">
                   <th className="text-left py-2.5 font-medium">Phone</th>
                   <th className="text-right py-2.5 font-medium">Agencies</th>
                   <th className="text-right py-2.5 font-medium">Posts</th>
@@ -298,23 +304,18 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Policy changes */}
       {data && data.recent_policy_changes.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
-        >
-          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-4 uppercase tracking-wider">
-            Recent Policy Changes
+        <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4">
+            Recent policy changes
           </h3>
           <div className="space-y-2">
             {data.recent_policy_changes.map((change, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+              <div key={i} className="flex items-start gap-3 p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
                 <div className="text-sm">
                   <span className="font-medium text-emerald-400">{change.route}</span>
@@ -325,7 +326,7 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );

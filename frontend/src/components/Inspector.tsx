@@ -31,7 +31,7 @@ function RiskGauge({ score, verdict }: { score: number; verdict: string }) {
     HIGH: '#ef4444',
     CRITICAL: '#dc2626',
   };
-  const color = colors[verdict] || '#52525b';
+  const color = colors[verdict] || '#82828c';
 
   return (
     <div className="relative w-44 h-44 mx-auto">
@@ -46,7 +46,7 @@ function RiskGauge({ score, verdict }: { score: number; verdict: string }) {
           stroke={color} strokeWidth="8" strokeLinecap="round"
           strokeDasharray={`${circumference * 0.75} ${circumference * 0.25}`}
           strokeDashoffset={dashOffset}
-          className="transition-all duration-1000 ease-out"
+          className="transition-all duration-700 ease-out"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -63,13 +63,13 @@ function EvidenceCard({ item, index }: { item: EvidenceItem; index: number }) {
   const styles = EVIDENCE_STYLES[item.type] || { text: 'text-zinc-400', bg: 'bg-zinc-500/5', border: 'border-zinc-500/15' };
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ delay: index * 0.04, duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
       className={`${styles.bg} ${styles.border} border rounded-xl p-4`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className={`text-xs font-semibold uppercase tracking-wider ${styles.text}`}>
+        <span className={`text-xs font-semibold ${styles.text}`}>
           {EVIDENCE_LABELS[item.type] || item.type}
         </span>
         <span className="text-xs text-[var(--text-muted)] font-mono tabular-nums">
@@ -125,9 +125,8 @@ export default function Inspector() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+        <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
           Agency Inspector
         </h2>
         <p className="text-sm text-[var(--text-muted)] mt-1.5 max-w-[65ch]">
@@ -194,9 +193,10 @@ export default function Inspector() {
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
             className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 text-red-400 text-sm"
           >
             {error}
@@ -210,7 +210,7 @@ export default function Inspector() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.2 }}
             className="grid grid-cols-1 lg:grid-cols-3 gap-6"
           >
             {/* Risk gauge panel */}
@@ -255,7 +255,7 @@ export default function Inspector() {
 
             {/* Evidence chain */}
             <div className="lg:col-span-2 space-y-4">
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">Evidence Chain</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Evidence Chain</h3>
               {result.evidence_chain.length === 0 ? (
                 <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-12 text-center">
                   <ShieldCheck size={32} weight="thin" className="text-emerald-400 mx-auto mb-3" />

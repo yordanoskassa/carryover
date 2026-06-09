@@ -54,9 +54,8 @@ export default function Advisor() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+        <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
           Visa Requirements
         </h2>
         <p className="text-sm text-[var(--text-muted)] mt-1.5 max-w-[65ch]">
@@ -117,9 +116,10 @@ export default function Advisor() {
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
             className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 text-red-400 text-sm"
           >
             {error}
@@ -133,11 +133,12 @@ export default function Advisor() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
             className="space-y-4"
           >
             <div className="flex items-center gap-3">
-              <Globe size={20} weight="bold" className="text-emerald-400" />
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">
+              <Globe size={18} weight="bold" className="text-emerald-400" />
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                 {COUNTRIES.find(c => c.code === nationality)?.name} to {DESTINATIONS.find(c => c.code === destination)?.name}
               </h3>
             </div>
@@ -151,10 +152,10 @@ export default function Advisor() {
                 {results.map((req, i) => (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                    className="group bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5 hover:border-[var(--border-hover)] transition-colors"
+                    transition={{ delay: i * 0.04, duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+                    className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5 hover:border-[var(--border-hover)] transition-colors"
                   >
                     <p className="text-sm text-[var(--text-primary)] leading-relaxed max-w-[65ch]">
                       {req.requirement_text}
