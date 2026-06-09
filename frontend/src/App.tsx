@@ -1,6 +1,28 @@
 import { useState, useEffect } from 'react';
 import { MagnifyingGlass, Warning, CircleNotch } from '@phosphor-icons/react';
-import { Route } from 'lucide-react';
+
+function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+      {/* deck */}
+      <rect x="1" y="16" width="22" height="2.5" rx="1" fill="currentColor" />
+      {/* left tower */}
+      <rect x="5" y="6" width="2.5" height="10" rx="0.5" fill="currentColor" />
+      {/* right tower */}
+      <rect x="16.5" y="6" width="2.5" height="10" rx="0.5" fill="currentColor" />
+      {/* left tower cap */}
+      <rect x="4.5" y="5" width="3.5" height="1.5" rx="0.5" fill="currentColor" />
+      {/* right tower cap */}
+      <rect x="16" y="5" width="3.5" height="1.5" rx="0.5" fill="currentColor" />
+      {/* main cable */}
+      <path d="M1 8 Q6.25 14, 12 14 Q17.75 14, 23 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+      {/* suspender cables */}
+      <line x1="8.5" y1="12.8" x2="8.5" y2="16" stroke="currentColor" strokeWidth="1" />
+      <line x1="12" y1="14" x2="12" y2="16" stroke="currentColor" strokeWidth="1" />
+      <line x1="15.5" y1="12.8" x2="15.5" y2="16" stroke="currentColor" strokeWidth="1" />
+    </svg>
+  );
+}
 import Globe from './components/Globe';
 import NewsTicker from './components/NewsTicker';
 import Advisor from './components/Advisor';
@@ -100,7 +122,7 @@ export default function App() {
       <header className="border-b shrink-0 z-50">
         <div className="mx-auto px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Route size={22} className="text-primary" strokeWidth={2.5} />
+            <BridgeIcon size={24} className="text-primary" />
             <span className="text-lg font-bold tracking-tight text-foreground">Carryover</span>
             <span className="text-[10px] text-muted-foreground font-mono hidden md:inline ml-2">
               HONEST TRAVEL INTEL · NO PAID PLACEMENTS · BUILT FOR AFRICA
