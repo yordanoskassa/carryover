@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts';
-import { Database, AlertTriangle, Phone, TrendingUp, RefreshCw, Loader2, Shield } from 'lucide-react';
+import { Database, Warning, Phone, ArrowsClockwise, CircleNotch, Shield } from '@phosphor-icons/react';
 import { getDashboard, getFlaggedAgencies, getFlaggedPhones, type DashboardData } from '../api';
 
 const CORRIDOR_COLORS: Record<string, string> = {
@@ -12,19 +13,41 @@ const CORRIDOR_COLORS: Record<string, string> = {
   'IN->CA': '#f97316',
 };
 
-function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
+function StatCard({ label, value, icon, accentColor, index }: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  accentColor: string;
+  index: number;
+}) {
   return (
-    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-400">{label}</span>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">{label}</span>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accentColor}`}>
           {icon}
         </div>
       </div>
-      <div className="mt-2 text-2xl font-bold text-white">{typeof value === 'number' ? value.toLocaleString() : value}</div>
-    </div>
+      <div className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </div>
+    </motion.div>
   );
 }
+
+const tooltipStyle = {
+  background: 'var(--surface-2)',
+  border: '1px solid var(--border)',
+  borderRadius: '10px',
+  color: 'var(--text-primary)',
+  fontSize: '12px',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+};
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -54,8 +77,8 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 size={32} className="animate-spin text-emerald-500" />
+      <div className="flex items-center justify-center py-32">
+        <CircleNotch size={28} className="animate-spin text-emerald-400" />
       </div>
     );
   }
@@ -80,18 +103,22 @@ export default function Dashboard() {
   const areaData = trendData ? Object.values(trendData).sort((a, b) => a.month.localeCompare(b.month)) : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Threat Intelligence Dashboard</h2>
-          <p className="text-gray-400 mt-1">Real-time scam analytics powered by Elasticsearch ES|QL</p>
+          <h2 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+            Threat Intelligence
+          </h2>
+          <p className="text-sm text-[var(--text-muted)] mt-1.5">
+            Real-time scam analytics powered by Elasticsearch
+          </p>
         </div>
         <button
           onClick={fetchAll}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800 text-gray-300 hover:text-white transition text-sm"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-colors text-xs font-medium active:scale-[0.98]"
         >
-          <RefreshCw size={14} />
+          <ArrowsClockwise size={14} weight="bold" />
           Refresh
         </button>
       </div>
@@ -99,174 +126,206 @@ export default function Dashboard() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
-          label="Scam Reports Indexed"
+          label="Scam Reports"
           value={data?.total_scams_indexed ?? 0}
-          icon={<Database size={16} className="text-white" />}
-          color="bg-red-600/20"
+          icon={<Database size={16} weight="bold" className="text-red-400" />}
+          accentColor="bg-red-500/10"
+          index={0}
         />
         <StatCard
-          label="Visa Policies Indexed"
+          label="Policies Indexed"
           value={data?.total_policies_indexed ?? 0}
-          icon={<Shield size={16} className="text-white" />}
-          color="bg-emerald-600/20"
+          icon={<Shield size={16} weight="bold" className="text-emerald-400" />}
+          accentColor="bg-emerald-500/10"
+          index={1}
         />
         <StatCard
           label="Flagged Agencies"
           value={agencies.length}
-          icon={<AlertTriangle size={16} className="text-white" />}
-          color="bg-orange-600/20"
+          icon={<Warning size={16} weight="bold" className="text-amber-400" />}
+          accentColor="bg-amber-500/10"
+          index={2}
         />
         <StatCard
-          label="Shared Phone Numbers"
+          label="Shared Phones"
           value={phones.length}
-          icon={<Phone size={16} className="text-white" />}
-          color="bg-purple-600/20"
+          icon={<Phone size={16} weight="bold" className="text-violet-400" />}
+          accentColor="bg-violet-500/10"
+          index={3}
         />
       </div>
 
-      {/* Charts row */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Reports by corridor */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-orange-400" />
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
+        >
+          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-5 uppercase tracking-wider">
             Reports by Corridor
           </h3>
           {barData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={barData}>
-                <XAxis dataKey="corridor" tick={{ fill: '#6b7280', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '8px', color: '#e5e7eb' }}
-                />
-                <Bar dataKey="reports" radius={[4, 4, 0, 0]}>
+                <XAxis dataKey="corridor" tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                <Bar dataKey="reports" radius={[6, 6, 0, 0]}>
                   {barData.map((entry, i) => (
-                    <Cell key={i} fill={CORRIDOR_COLORS[entry.corridor] || '#6b7280'} />
+                    <Cell key={i} fill={CORRIDOR_COLORS[entry.corridor] || '#52525b'} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-60 flex items-center justify-center text-gray-600">No data yet</div>
+            <div className="h-60 flex items-center justify-center text-[var(--text-muted)] text-sm">
+              No data yet
+            </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Trend over time */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-            <TrendingUp size={14} className="text-cyan-400" />
-            Report Trend Over Time
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
+        >
+          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-5 uppercase tracking-wider">
+            Report Trend
           </h3>
           {areaData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={areaData}>
-                <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '8px', color: '#e5e7eb' }}
-                />
+                <XAxis dataKey="month" tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#52525b', fontSize: 11, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'rgba(255,255,255,0.06)' }} />
                 <defs>
-                  <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                  <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <Area type="monotone" dataKey="reports" stroke="#06b6d4" fill="url(#grad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="reports" stroke="#10b981" fill="url(#trendGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-60 flex items-center justify-center text-gray-600">No data yet</div>
+            <div className="h-60 flex items-center justify-center text-[var(--text-muted)] text-sm">
+              No data yet
+            </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
-      {/* Tables row */}
+      {/* Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Flagged agencies */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-red-400" />
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
+        >
+          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-4 uppercase tracking-wider">
             Flagged Agencies
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-gray-500 text-xs uppercase">
-                  <th className="text-left py-2">Agency</th>
-                  <th className="text-right py-2">Reports</th>
-                  <th className="text-right py-2">Confidence</th>
-                  <th className="text-right py-2">Corridors</th>
+                <tr className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">
+                  <th className="text-left py-2.5 font-medium">Agency</th>
+                  <th className="text-right py-2.5 font-medium">Reports</th>
+                  <th className="text-right py-2.5 font-medium">Conf.</th>
+                  <th className="text-right py-2.5 font-medium">Corridors</th>
                 </tr>
               </thead>
               <tbody>
                 {agencies.length === 0 ? (
-                  <tr><td colSpan={4} className="text-center py-6 text-gray-600">No flagged agencies yet</td></tr>
+                  <tr>
+                    <td colSpan={4} className="text-center py-10 text-[var(--text-muted)] text-sm">
+                      No flagged agencies yet
+                    </td>
+                  </tr>
                 ) : agencies.map((a, i) => (
-                  <tr key={i} className="border-t border-gray-800/50 hover:bg-gray-800/20">
-                    <td className="py-2 text-gray-200">{String(a.agency_name || 'Unknown')}</td>
-                    <td className="py-2 text-right text-orange-400 font-mono">{String(a.report_count || 0)}</td>
-                    <td className="py-2 text-right text-gray-400 font-mono">{Number(a.avg_confidence || 0).toFixed(1)}</td>
-                    <td className="py-2 text-right text-gray-500">{String(a.corridors || 0)}</td>
+                  <tr key={i} className="border-t border-[var(--border)] hover:bg-[var(--surface-2)]/50 transition-colors">
+                    <td className="py-3 text-[var(--text-primary)] text-sm">{String(a.agency_name || 'Unknown')}</td>
+                    <td className="py-3 text-right text-orange-400 font-mono tabular-nums text-sm">{String(a.report_count || 0)}</td>
+                    <td className="py-3 text-right text-[var(--text-secondary)] font-mono tabular-nums text-sm">{Number(a.avg_confidence || 0).toFixed(1)}</td>
+                    <td className="py-3 text-right text-[var(--text-muted)] text-sm">{String(a.corridors || 0)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
 
         {/* Shared phone numbers */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-            <Phone size={14} className="text-purple-400" />
-            Shared Phone Numbers (Identity Reuse)
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
+        >
+          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-4 uppercase tracking-wider">
+            Shared Phone Numbers
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-gray-500 text-xs uppercase">
-                  <th className="text-left py-2">Phone</th>
-                  <th className="text-right py-2">Agencies</th>
-                  <th className="text-right py-2">Posts</th>
+                <tr className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">
+                  <th className="text-left py-2.5 font-medium">Phone</th>
+                  <th className="text-right py-2.5 font-medium">Agencies</th>
+                  <th className="text-right py-2.5 font-medium">Posts</th>
                 </tr>
               </thead>
               <tbody>
                 {phones.length === 0 ? (
-                  <tr><td colSpan={3} className="text-center py-6 text-gray-600">No shared numbers detected</td></tr>
+                  <tr>
+                    <td colSpan={3} className="text-center py-10 text-[var(--text-muted)] text-sm">
+                      No shared numbers detected
+                    </td>
+                  </tr>
                 ) : phones.map((p, i) => (
-                  <tr key={i} className="border-t border-gray-800/50 hover:bg-gray-800/20">
-                    <td className="py-2 text-gray-200 font-mono">{String(p.phone || 'N/A')}</td>
-                    <td className="py-2 text-right text-purple-400 font-mono">{String(p.agency_count || 0)}</td>
-                    <td className="py-2 text-right text-gray-400 font-mono">{String(p.post_count || 0)}</td>
+                  <tr key={i} className="border-t border-[var(--border)] hover:bg-[var(--surface-2)]/50 transition-colors">
+                    <td className="py-3 text-[var(--text-primary)] font-mono tabular-nums text-sm">{String(p.phone || 'N/A')}</td>
+                    <td className="py-3 text-right text-violet-400 font-mono tabular-nums text-sm">{String(p.agency_count || 0)}</td>
+                    <td className="py-3 text-right text-[var(--text-secondary)] font-mono tabular-nums text-sm">{String(p.post_count || 0)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Policy changes */}
       {data && data.recent_policy_changes.length > 0 && (
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-            <RefreshCw size={14} className="text-cyan-400" />
-            Recent Policy Changes (Watchtower)
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5"
+        >
+          <h3 className="text-xs font-medium text-[var(--text-muted)] mb-4 uppercase tracking-wider">
+            Recent Policy Changes
           </h3>
           <div className="space-y-2">
             {data.recent_policy_changes.map((change, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-cyan-900/10 border border-cyan-900/30 rounded-lg">
-                <div className="w-2 h-2 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
+              <div key={i} className="flex items-start gap-3 p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
                 <div className="text-sm">
-                  <span className="font-medium text-cyan-300">{change.route}</span>
-                  <span className="text-gray-400 mx-2">—</span>
-                  <span className="text-gray-300">{change.diff_summary}</span>
-                  <span className="text-gray-600 text-xs ml-2">{change.snapshot_date}</span>
+                  <span className="font-medium text-emerald-400">{change.route}</span>
+                  <span className="text-[var(--text-muted)] mx-2">-</span>
+                  <span className="text-[var(--text-secondary)]">{change.diff_summary}</span>
+                  <span className="text-[var(--text-muted)] text-xs ml-2">{change.snapshot_date}</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

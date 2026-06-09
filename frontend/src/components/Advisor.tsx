@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Globe, FileText, Clock, DollarSign, ExternalLink, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Globe, FileText, Clock, CurrencyDollar, ArrowSquareOut, CircleNotch, MagnifyingGlass } from '@phosphor-icons/react';
 import { getRequirements, type PolicyResult } from '../api';
 
 const COUNTRIES = [
@@ -28,6 +29,8 @@ const DESTINATIONS = [
 
 const PURPOSES = ['student', 'work', 'family', 'tourist'];
 
+const selectStyles = "w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-[var(--text-primary)] text-sm focus:outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer";
+
 export default function Advisor() {
   const [nationality, setNationality] = useState('ET');
   const [destination, setDestination] = useState('GB');
@@ -50,132 +53,155 @@ export default function Advisor() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Title */}
+    <div className="space-y-8">
+      {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white">Visa Requirements Advisor</h2>
-        <p className="text-gray-400 mt-1">Get official, cited visa requirements for your route</p>
+        <h2 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+          Visa Requirements
+        </h2>
+        <p className="text-sm text-[var(--text-muted)] mt-1.5 max-w-[65ch]">
+          Official, cited visa requirements for your route. All data sourced from government websites.
+        </p>
       </div>
 
-      {/* Input form */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* From country */}
-        <div>
-          <label className="block text-sm text-gray-400 mb-1.5">Your nationality</label>
-          <select
-            value={nationality}
-            onChange={(e) => setNationality(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
-          >
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.name}</option>
-            ))}
-          </select>
-        </div>
+      {/* Form */}
+      <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-muted)] mb-2 uppercase tracking-wider">
+              Nationality
+            </label>
+            <select value={nationality} onChange={(e) => setNationality(e.target.value)} className={selectStyles}>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* To country */}
-        <div>
-          <label className="block text-sm text-gray-400 mb-1.5">Destination</label>
-          <select
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition"
-          >
-            {DESTINATIONS.map((c) => (
-              <option key={c.code} value={c.code}>{c.name}</option>
-            ))}
-          </select>
-        </div>
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-muted)] mb-2 uppercase tracking-wider">
+              Destination
+            </label>
+            <select value={destination} onChange={(e) => setDestination(e.target.value)} className={selectStyles}>
+              {DESTINATIONS.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Purpose */}
-        <div>
-          <label className="block text-sm text-gray-400 mb-1.5">Visa type</label>
-          <select
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-emerald-500 transition capitalize"
-          >
-            {PURPOSES.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </div>
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-muted)] mb-2 uppercase tracking-wider">
+              Visa type
+            </label>
+            <select value={purpose} onChange={(e) => setPurpose(e.target.value)} className={`${selectStyles} capitalize`}>
+              {PURPOSES.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Search button */}
-        <div className="flex items-end">
-          <button
-            onClick={handleSearch}
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-medium py-2.5 px-4 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <Globe size={18} />}
-            {loading ? 'Searching...' : 'Get Requirements'}
-          </button>
+          <div className="flex items-end">
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm active:scale-[0.98]"
+            >
+              {loading ? <CircleNotch size={16} className="animate-spin" /> : <MagnifyingGlass size={16} weight="bold" />}
+              {loading ? 'Searching...' : 'Search'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Error */}
-      {error && (
-        <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 text-red-300">
-          {error}
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 text-red-400 text-sm"
+          >
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Results */}
-      {results && (
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-white">
-            Requirements: {COUNTRIES.find(c => c.code === nationality)?.name} → {DESTINATIONS.find(c => c.code === destination)?.name}
-          </h3>
-          {results.length === 0 ? (
-            <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-8 text-center text-gray-500">
-              No policy data found for this corridor yet. Data is still being indexed.
+      <AnimatePresence>
+        {results && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <Globe size={20} weight="bold" className="text-emerald-400" />
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                {COUNTRIES.find(c => c.code === nationality)?.name} to {DESTINATIONS.find(c => c.code === destination)?.name}
+              </h3>
             </div>
-          ) : (
-            <div className="grid gap-3">
-              {results.map((req, i) => (
-                <div key={i} className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 hover:border-gray-700 transition">
-                  <p className="text-gray-200 leading-relaxed">{req.requirement_text}</p>
-                  {req.documents_needed && (
-                    <div className="mt-3 flex items-start gap-2 text-sm text-gray-400">
-                      <FileText size={14} className="mt-0.5 shrink-0 text-emerald-500" />
-                      <span>{req.documents_needed}</span>
+
+            {results.length === 0 ? (
+              <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-12 text-center">
+                <p className="text-[var(--text-muted)] text-sm">No policy data found for this corridor yet.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {results.map((req, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                    className="group bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5 hover:border-[var(--border-hover)] transition-colors"
+                  >
+                    <p className="text-sm text-[var(--text-primary)] leading-relaxed max-w-[65ch]">
+                      {req.requirement_text}
+                    </p>
+
+                    {req.documents_needed && (
+                      <div className="mt-3 flex items-start gap-2.5 text-sm">
+                        <FileText size={14} weight="bold" className="mt-0.5 shrink-0 text-emerald-400" />
+                        <span className="text-[var(--text-secondary)]">{req.documents_needed}</span>
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[var(--text-muted)]">
+                      {req.fee_usd && (
+                        <span className="flex items-center gap-1.5">
+                          <CurrencyDollar size={13} weight="bold" className="text-amber-400" />
+                          ${req.fee_usd}
+                        </span>
+                      )}
+                      {req.processing_days && (
+                        <span className="flex items-center gap-1.5">
+                          <Clock size={13} weight="bold" className="text-blue-400" />
+                          {req.processing_days} days
+                        </span>
+                      )}
+                      {req.source_url && (
+                        <a
+                          href={req.source_url}
+                          target="_blank"
+                          rel="noopener"
+                          className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors"
+                        >
+                          <ArrowSquareOut size={13} weight="bold" />
+                          {req.source_name || 'Source'}
+                        </a>
+                      )}
+                      {req.last_updated && (
+                        <span>Updated {req.last_updated}</span>
+                      )}
                     </div>
-                  )}
-                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
-                    {req.fee_usd && (
-                      <span className="flex items-center gap-1">
-                        <DollarSign size={12} className="text-yellow-500" />
-                        ${req.fee_usd}
-                      </span>
-                    )}
-                    {req.processing_days && (
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} className="text-blue-400" />
-                        {req.processing_days} days
-                      </span>
-                    )}
-                    {req.source_url && (
-                      <a
-                        href={req.source_url}
-                        target="_blank"
-                        rel="noopener"
-                        className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300"
-                      >
-                        <ExternalLink size={12} />
-                        {req.source_name || 'Source'}
-                      </a>
-                    )}
-                    {req.last_updated && (
-                      <span className="text-gray-600">Updated: {req.last_updated}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
