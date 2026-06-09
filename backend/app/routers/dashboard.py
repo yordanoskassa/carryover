@@ -102,6 +102,139 @@ async def get_dashboard_stats():
     )
 
 
+@router.get("/visa-overview")
+async def get_visa_overview(nationality: str = "ET"):
+    """Visa restriction overview for a nationality across all destinations.
+
+    Combines policy count from visa-policies and scam volume from
+    known-scams to produce a per-destination openness indicator.
+    """
+    destinations = ["GB", "US", "CA", "DE", "AU", "FR", "NL", "SE"]
+    dest_names = {
+        "GB": "United Kingdom", "US": "United States", "CA": "Canada",
+        "DE": "Germany", "AU": "Australia", "FR": "France",
+        "NL": "Netherlands", "SE": "Sweden",
+    }
+
+    # Count policies per destination (more documented policies = more accessible)
+    policy_counts: dict[str, int] = {}
+    try:
+        result = es.esql.query(
+            query=(
+                "FROM visa-policies "
+                f'| WHERE (nationality == "{nationality}" OR nationality == "ALL") '
+                "| STATS doc_count = COUNT(*) BY destination "
+                "| SORT doc_count DESC"
+            )
+        )
+        cols = [c["name"] for c in result.get("columns", [])]
+        for row in result.get("values", []):
+            record = dict(zip(cols, row))
+            dest = record.get("destination", "")
+            policy_counts[dest] = record.get("doc_count", 0)
+    except Exception:
+        pass
+
+    # Count scam reports per corridor (more scams = higher risk)
+    scam_counts: dict[str, int] = {}
+    try:
+        result = es.esql.query(
+            query=(
+                "FROM known-scams "
+                "| STATS report_count = COUNT(*) BY corridor "
+                "| SORT report_count DESC"
+            )
+        )
+        cols = [c["name"] for c in result.get("columns", [])]
+        for row in result.get("values", []):
+            record = dict(zip(cols, row))
+            corridor = record.get("corridor", "")
+            if corridor and corridor.startswith(f"{nationality}->"):
+                dest = corridor.split("->")[1] if "->" in corridor else ""
+                scam_counts[dest] = record.get("report_count", 0)
+    except Exception:
+        pass
+
+    # Recent policy changes from policy-history
+    news: list[dict] = []
+    try:
+        result = es.esql.query(
+            query=(
+                "FROM policy-history "
+                "| WHERE changes_detected == true "
+                "| SORT snapshot_date DESC "
+                "| KEEP route, snapshot_date, diff_summary, source_url "
+                "| LIMIT 10"
+            )
+        )
+        cols = [c["name"] for c in result.get("columns", [])]
+        for row in result.get("values", []):
+            news.append(dict(zip(cols, row)))
+    except Exception:
+        pass
+
+    # Also pull recent crawled page titles as additional news
+    crawled_news: list[dict] = []
+    try:
+        result = es.search(
+            index="crawled-visa-pages",
+            body={
+                "size": 10,
+                "sort": [{"last_crawled_at": {"order": "desc"}}],
+                "_source": ["title", "url", "url_host", "last_crawled_at"],
+            },
+        )
+        for hit in result.get("hits", {}).get("hits", []):
+            src = hit.get("_source", {})
+            crawled_news.append({
+                "title": src.get("title", ""),
+                "url": src.get("url", ""),
+                "host": src.get("url_host", ""),
+                "crawled_at": src.get("last_crawled_at", ""),
+            })
+    except Exception:
+        pass
+
+    # Build restriction entries
+    max_policies = max(policy_counts.values()) if policy_counts else 1
+    max_scams = max(scam_counts.values()) if scam_counts else 1
+
+    entries = []
+    for dest in destinations:
+        policies = policy_counts.get(dest, 0)
+        scams = scam_counts.get(dest, 0)
+
+        # Score: more policies = more open, more scams = riskier
+        policy_score = (policies / max_policies * 60) if max_policies else 30
+        scam_penalty = (scams / max_scams * 40) if max_scams else 0
+        score = max(5, min(95, int(policy_score + 30 - scam_penalty)))
+
+        if score >= 65:
+            label = "Open"
+        elif score >= 45:
+            label = "Moderate"
+        else:
+            label = "Restricted"
+
+        entries.append({
+            "code": dest,
+            "name": dest_names.get(dest, dest),
+            "score": score,
+            "label": label,
+            "policy_count": policies,
+            "scam_reports": scams,
+        })
+
+    entries.sort(key=lambda x: x["score"], reverse=True)
+
+    return {
+        "nationality": nationality,
+        "destinations": entries,
+        "policy_updates": news,
+        "crawled_sources": crawled_news,
+    }
+
+
 @router.get("/flagged-agencies")
 async def get_flagged_agencies():
     """Top flagged agencies by report count."""

@@ -104,6 +104,33 @@ export function getDashboard() {
   return request<DashboardData>('/dashboard/stats');
 }
 
+export interface VisaDestEntry {
+  code: string;
+  name: string;
+  score: number;
+  label: string;
+  policy_count: number;
+  scam_reports: number;
+}
+
+export interface CrawledSource {
+  title: string;
+  url: string;
+  host: string;
+  crawled_at: string;
+}
+
+export interface VisaOverviewData {
+  nationality: string;
+  destinations: VisaDestEntry[];
+  policy_updates: Record<string, string>[];
+  crawled_sources: CrawledSource[];
+}
+
+export function getVisaOverview(nationality: string) {
+  return request<VisaOverviewData>(`/dashboard/visa-overview?nationality=${nationality}`);
+}
+
 export function getFlaggedAgencies() {
   return request<{ agencies: Record<string, unknown>[] }>('/dashboard/flagged-agencies');
 }
