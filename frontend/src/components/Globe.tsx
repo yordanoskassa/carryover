@@ -40,13 +40,12 @@ export default function Globe({ nationality, destination }: GlobeProps) {
     const origin = COORDS[nationality] || [9.1, 40.5];
     const dest = COORDS[destination] || [55.4, -3.4];
 
-    // Start facing the origin country
     const startPhi = (-origin[1] * Math.PI) / 180 + Math.PI / 6;
     phiRef.current = startPhi;
 
     const markers = [
-      { location: origin as [number, number], size: 0.1 },
-      { location: dest as [number, number], size: 0.1 },
+      { location: origin as [number, number], size: 0.12 },
+      { location: dest as [number, number], size: 0.12 },
     ];
 
     const onResize = () => {
@@ -63,13 +62,13 @@ export default function Globe({ nationality, destination }: GlobeProps) {
       height: widthRef.current * 2,
       phi: startPhi,
       theta: 0.2,
-      dark: 0,
-      diffuse: 1.2,
+      dark: 1,
+      diffuse: 1.6,
       mapSamples: 24000,
-      mapBrightness: 2.5,
-      baseColor: [0.92, 0.92, 0.94],
-      markerColor: [0.15, 0.15, 0.18],
-      glowColor: [1, 1, 1],
+      mapBrightness: 6,
+      baseColor: [0.12, 0.18, 0.22],
+      markerColor: [0, 0.83, 0.67],
+      glowColor: [0, 0.4, 0.35],
       markers,
     });
 
@@ -98,7 +97,7 @@ export default function Globe({ nationality, destination }: GlobeProps) {
     <canvas
       ref={canvasRef}
       className="w-full aspect-square"
-      style={{ contain: 'layout paint size', maxWidth: 80 }}
+      style={{ contain: 'layout paint size', maxWidth: 180 }}
     />
   );
 }
