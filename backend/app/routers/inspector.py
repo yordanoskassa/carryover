@@ -26,25 +26,28 @@ async def evaluate_agency(req: InspectorRequest):
         size=5,
     )
     matched_scams = 0
+    max_score = max((h.get("_score", 0) for h in scam_matches.get("hits", {}).get("hits", [])), default=0)
     for hit in scam_matches.get("hits", {}).get("hits", []):
         score = hit.get("_score", 0)
         src = hit["_source"]
-        if score > 0.5:
+        if score > 0:
             matched_scams += 1
-            confidence = min(score / 10, 1.0)  # normalize
+            # Normalize: ELSER scores vary by corpus size; use relative scoring
+            confidence = min(score / max(max_score * 1.2, 1.0), 1.0) if max_score > 0 else 0
             evidence.append(EvidenceItem(
                 type="SEMANTIC_MATCH",
                 description=(
-                    f"Post text is {confidence:.0%} similar to known scam: "
+                    f"Post matches known scam pattern (score {score:.3f}): "
                     f"'{src.get('post_text', '')[:120]}...'"
                 ),
                 source=src.get("source", "known-scams index"),
                 confidence=confidence,
             ))
-            if confidence > 0.7:
-                risk_score += 40
-            elif confidence > 0.5:
-                risk_score += 20
+    # Score based on number of matches and top confidence
+    if matched_scams >= 3:
+        risk_score += 40
+    elif matched_scams >= 1:
+        risk_score += 25
 
     # ── 2. Policy contradiction check ─────────────────────────────────────
     if req.corridor:
