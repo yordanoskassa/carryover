@@ -138,3 +138,25 @@ export function getFlaggedAgencies() {
 export function getFlaggedPhones() {
   return request<{ phones: Record<string, unknown>[] }>('/dashboard/flagged-phones');
 }
+
+// ── Kibo (Chat Agent) ───────────────────────────────────────────────────
+
+export interface KiboMessage {
+  role: 'user' | 'kibo';
+  content: string;
+}
+
+export function chatWithKibo(
+  question: string,
+  context: { nationality: string; destination: string; purpose: string },
+) {
+  return request<{ output?: string; reply?: string; error?: string }>('/advisor/ask', {
+    method: 'POST',
+    body: JSON.stringify({
+      nationality: context.nationality,
+      destination: context.destination,
+      purpose: context.purpose,
+      question,
+    }),
+  });
+}
