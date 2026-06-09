@@ -1,0 +1,43 @@
+# Elastic Open Crawler — Canada IRCC Immigration Pages
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  - url: https://www.canada.ca
+    seed_urls:
+      # Study permit
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit.html
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit/eligibility.html
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada/study-permit/get-documents.html
+      # Work permit
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/work-canada.html
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/work-canada/permit.html
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/work-canada/permit/temporary.html
+      # Visit / tourist
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/visit-canada.html
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/visit-canada/eligibility.html
+      # Express Entry (permanent residence)
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry.html
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/eligibility.html
+      # Family sponsorship
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/family-sponsorship.html
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/family-sponsorship/spouse-partner-children.html
+      # Fees
+      - https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/fees.html
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en/immigration-refugees-citizenship
+      - policy: deny
+        type: begins
+        pattern: /

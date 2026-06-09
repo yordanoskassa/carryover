@@ -1,0 +1,90 @@
+# Elastic Open Crawler — UAE, Turkey, South Africa, Kenya visa pages
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  # UAE — Federal Authority for Identity and Citizenship
+  - url: https://icp.gov.ae
+    seed_urls:
+      - https://icp.gov.ae/en/services/entry-permits/
+      - https://icp.gov.ae/en/services/residency/
+      - https://icp.gov.ae/en/services/visa-services/
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en/services
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Turkey — Ministry of Foreign Affairs
+  - url: https://www.mfa.gov.tr
+    seed_urls:
+      - https://www.mfa.gov.tr/visa-information-for-foreigners.en.mfa
+      - https://www.mfa.gov.tr/general-information-about-turkish-visas.en.mfa
+      - https://www.mfa.gov.tr/visa-types.en.mfa
+    crawl_rules:
+      - policy: allow
+        type: contains
+        pattern: visa
+      - policy: allow
+        type: contains
+        pattern: .en.mfa
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Turkey e-Visa
+  - url: https://www.evisa.gov.tr
+    seed_urls:
+      - https://www.evisa.gov.tr/en/
+      - https://www.evisa.gov.tr/en/info/
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # South Africa — Department of Home Affairs
+  - url: http://www.dha.gov.za
+    seed_urls:
+      - http://www.dha.gov.za/index.php/immigration-services/types-of-visas
+    crawl_rules:
+      - policy: allow
+        type: contains
+        pattern: visa
+      - policy: allow
+        type: contains
+        pattern: immigration
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Australia — Department of Home Affairs
+  - url: https://immi.homeaffairs.gov.au
+    seed_urls:
+      - https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-finder
+      - https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500
+      - https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/skilled-independent-189
+      - https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/temporary-skill-shortage-482
+      - https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/visitor-600
+      - https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/partner-onshore-801-820
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /visas
+      - policy: deny
+        type: begins
+        pattern: /

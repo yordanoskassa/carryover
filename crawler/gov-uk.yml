@@ -1,0 +1,88 @@
+# Elastic Open Crawler — UK Government Visa Pages
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  - url: https://www.gov.uk
+    seed_urls:
+      # Student visa
+      - https://www.gov.uk/student-visa
+      - https://www.gov.uk/student-visa/eligibility
+      - https://www.gov.uk/student-visa/money
+      - https://www.gov.uk/student-visa/documents
+      - https://www.gov.uk/student-visa/apply
+      - https://www.gov.uk/student-visa/knowledge-of-english
+      # Skilled Worker visa
+      - https://www.gov.uk/skilled-worker-visa
+      - https://www.gov.uk/skilled-worker-visa/eligibility
+      - https://www.gov.uk/skilled-worker-visa/your-job
+      - https://www.gov.uk/skilled-worker-visa/how-much-it-costs
+      - https://www.gov.uk/skilled-worker-visa/documents-you-must-provide
+      # Health and Care Worker visa
+      - https://www.gov.uk/health-care-worker-visa
+      - https://www.gov.uk/health-care-worker-visa/eligibility
+      - https://www.gov.uk/health-care-worker-visa/how-much-it-costs
+      # Family visa
+      - https://www.gov.uk/uk-family-visa
+      - https://www.gov.uk/uk-family-visa/partner-spouse
+      - https://www.gov.uk/uk-family-visa/proof-income
+      - https://www.gov.uk/uk-family-visa/apply
+      # Standard Visitor visa
+      - https://www.gov.uk/standard-visitor
+      - https://www.gov.uk/standard-visitor/eligibility
+      - https://www.gov.uk/standard-visitor/apply
+      # Graduate visa
+      - https://www.gov.uk/graduate-visa
+      - https://www.gov.uk/graduate-visa/eligibility
+      # Global Talent visa
+      - https://www.gov.uk/global-talent
+      # Check if you need a visa
+      - https://www.gov.uk/check-uk-visa
+      # TB test countries
+      - https://www.gov.uk/tb-test-visa
+      # Immigration Health Surcharge
+      - https://www.gov.uk/healthcare-immigration-application
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /student-visa
+      - policy: allow
+        type: begins
+        pattern: /skilled-worker-visa
+      - policy: allow
+        type: begins
+        pattern: /health-care-worker-visa
+      - policy: allow
+        type: begins
+        pattern: /uk-family-visa
+      - policy: allow
+        type: begins
+        pattern: /standard-visitor
+      - policy: allow
+        type: begins
+        pattern: /graduate-visa
+      - policy: allow
+        type: begins
+        pattern: /global-talent
+      - policy: allow
+        type: begins
+        pattern: /check-uk-visa
+      - policy: allow
+        type: begins
+        pattern: /tb-test-visa
+      - policy: allow
+        type: begins
+        pattern: /healthcare-immigration-application
+      - policy: deny
+        type: begins
+        pattern: /

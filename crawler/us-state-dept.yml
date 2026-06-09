@@ -1,0 +1,40 @@
+# Elastic Open Crawler — US State Department Visa Pages
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  - url: https://travel.state.gov
+    seed_urls:
+      # Student visas
+      - https://travel.state.gov/content/travel/en/us-visas/study/student-visa.html
+      - https://travel.state.gov/content/travel/en/us-visas/study/exchange.html
+      # Work visas
+      - https://travel.state.gov/content/travel/en/us-visas/employment/temporary-worker-visas.html
+      - https://travel.state.gov/content/travel/en/us-visas/employment/immigrant-visa-for-a-multinational-manager-or-executive.html
+      # Family / immigrant visas
+      - https://travel.state.gov/content/travel/en/us-visas/immigrate/family-immigration.html
+      - https://travel.state.gov/content/travel/en/us-visas/immigrate/diversity-visa.html
+      # Visitor / tourist
+      - https://travel.state.gov/content/travel/en/us-visas/tourism-visit/visitor.html
+      - https://travel.state.gov/content/travel/en/us-visas/tourism-visit/visa-waiver-program.html
+      # Fees
+      - https://travel.state.gov/content/travel/en/us-visas/visa-information-resources/fees/fees-visa-services.html
+      # General
+      - https://travel.state.gov/content/travel/en/us-visas/visa-information-resources.html
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /content/travel/en/us-visas
+      - policy: deny
+        type: begins
+        pattern: /

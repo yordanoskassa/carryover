@@ -1,0 +1,83 @@
+# Elastic Open Crawler — Schengen / EU Visa Information
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  # Germany — Federal Foreign Office
+  - url: https://www.auswaertiges-amt.de
+    seed_urls:
+      - https://www.auswaertiges-amt.de/en/visa-service
+      - https://www.auswaertiges-amt.de/en/visa-service/visa-and-entry
+      - https://www.auswaertiges-amt.de/en/visa-service/national-visa
+      - https://www.auswaertiges-amt.de/en/visa-service/schengen-visa
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en/visa-service
+      - policy: allow
+        type: begins
+        pattern: /en/einreiseundaufenthalt
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # France — France-Visas portal
+  - url: https://france-visas.gouv.fr
+    seed_urls:
+      - https://france-visas.gouv.fr/en/web/france-visas
+      - https://france-visas.gouv.fr/en/web/france-visas/short-stay-visa
+      - https://france-visas.gouv.fr/en/web/france-visas/long-stay-visa
+      - https://france-visas.gouv.fr/en/web/france-visas/student
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en/web/france-visas
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Netherlands — IND
+  - url: https://ind.nl
+    seed_urls:
+      - https://ind.nl/en/short-stay/visiting-the-netherlands-on-a-schengen-visa
+      - https://ind.nl/en/work/working-in-the-netherlands
+      - https://ind.nl/en/study/studying-in-the-netherlands
+      - https://ind.nl/en/family/joining-your-family-in-the-netherlands
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en/short-stay
+      - policy: allow
+        type: begins
+        pattern: /en/work
+      - policy: allow
+        type: begins
+        pattern: /en/study
+      - policy: allow
+        type: begins
+        pattern: /en/family
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Italy — VFS / Ministry of Foreign Affairs
+  - url: https://vistoperitalia.esteri.it
+    seed_urls:
+      - https://vistoperitalia.esteri.it/home/en
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /home/en
+      - policy: deny
+        type: begins
+        pattern: /
