@@ -3,8 +3,13 @@ from app.config import get_settings
 
 settings = get_settings()
 
+# Elastic Cloud URLs need explicit port for the Python client
+_es_url = settings.elasticsearch_url
+if _es_url.startswith("https://") and ":" not in _es_url.split("//", 1)[1]:
+    _es_url += ":443"
+
 es = Elasticsearch(
-    settings.elasticsearch_url,
+    _es_url,
     api_key=settings.elasticsearch_api_key,
 )
 

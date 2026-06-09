@@ -10,10 +10,10 @@ router = APIRouter(prefix="/api/advisor", tags=["advisor"])
 async def get_requirements(req: AdvisorRequest):
     """Get official visa requirements for a nationality→destination route."""
 
-    # 1. ES|QL exact lookup — fees, processing times, document counts
+    # 1. ES|QL exact lookup — filtered by nationality, destination, AND purpose
     esql_query = (
         "FROM visa-policies "
-        "| WHERE nationality == ?nationality AND destination == ?destination "
+        "| WHERE nationality == ?nationality AND destination == ?destination AND purpose == ?purpose "
         "| KEEP requirement_text, documents_needed, fee_usd, processing_days, "
         "  source_url, source_name, last_updated, purpose "
         "| LIMIT 20"
@@ -24,43 +24,51 @@ async def get_requirements(req: AdvisorRequest):
             params=[
                 {"nationality": req.nationality},
                 {"destination": req.destination},
+                {"purpose": req.purpose},
             ],
         )
     except Exception:
         esql_result = {"values": []}
 
-    # 2. Semantic search — broader context, catches related policies
+    # 2. Semantic search — filtered by purpose AND destination
+    purpose_labels = {
+        "student": "student study university education",
+        "work": "work employment skilled worker job",
+        "family": "family reunion spouse dependent",
+        "tourist": "tourist visitor travel short stay",
+    }
+    purpose_desc = purpose_labels.get(req.purpose, req.purpose)
     query_text = (
-        f"Visa requirements for {req.nationality} citizen traveling to "
-        f"{req.destination} for {req.purpose}"
+        f"{purpose_desc} visa requirements for {req.nationality} citizen "
+        f"traveling to {req.destination}"
     )
     try:
         semantic_result = search_semantic(
             index="visa-policies",
             query=query_text,
             size=5,
-            filters={"destination": req.destination} if req.destination else None,
+            filters={"destination": req.destination, "purpose": req.purpose},
         )
     except Exception:
         semantic_result = {"hits": {"hits": []}}
 
-    # Merge results
+    # Merge results — deduplicate on requirement_text, not source_url
     requirements = []
-    seen_urls = set()
+    seen = set()
 
     # From ES|QL
     columns = [c["name"] for c in esql_result.get("columns", [])]
     for row in esql_result.get("values", []):
         record = dict(zip(columns, row))
-        url = record.get("source_url", "")
-        if url not in seen_urls:
-            seen_urls.add(url)
+        key = record.get("requirement_text", "")[:80]
+        if key and key not in seen:
+            seen.add(key)
             requirements.append(PolicyResult(
                 requirement_text=record.get("requirement_text", ""),
                 documents_needed=record.get("documents_needed"),
                 fee_usd=record.get("fee_usd"),
                 processing_days=record.get("processing_days"),
-                source_url=url,
+                source_url=record.get("source_url", ""),
                 source_name=record.get("source_name", ""),
                 last_updated=record.get("last_updated"),
             ))
@@ -68,15 +76,15 @@ async def get_requirements(req: AdvisorRequest):
     # From semantic search
     for hit in semantic_result.get("hits", {}).get("hits", []):
         src = hit["_source"]
-        url = src.get("source_url", "")
-        if url not in seen_urls:
-            seen_urls.add(url)
+        key = src.get("requirement_text", "")[:80]
+        if key and key not in seen:
+            seen.add(key)
             requirements.append(PolicyResult(
                 requirement_text=src.get("requirement_text", ""),
                 documents_needed=src.get("documents_needed"),
                 fee_usd=src.get("fee_usd"),
                 processing_days=src.get("processing_days"),
-                source_url=url,
+                source_url=src.get("source_url", ""),
                 source_name=src.get("source_name", ""),
                 last_updated=src.get("last_updated"),
             ))
