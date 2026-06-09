@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Eye, Database, Shield, Warning, Phone } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
+import Globe from './components/Globe';
 import NewsTicker from './components/NewsTicker';
 import Advisor from './components/Advisor';
 import Inspector from './components/Inspector';
@@ -90,7 +91,10 @@ export default function App() {
       {/* Top bar - 48px: greeting + route selectors + stats */}
       <div className="border-b shrink-0">
         <div className="max-w-[1600px] mx-auto px-4 h-12 flex items-center gap-4">
-          {/* Greeting + name */}
+          {/* Globe + Greeting + name */}
+          <div className="w-10 h-10 shrink-0">
+            <Globe nationality={nationality} destination={destination} />
+          </div>
           <div className="flex items-center gap-2 shrink-0">
             {editingName ? (
               <form
