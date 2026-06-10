@@ -1,9 +1,33 @@
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import AdvisorRequest, AdvisorResponse, PolicyResult
 from app.services.elastic import es, search_semantic, search_esql
-from app.services import agent_builder
+from app.services import agent_builder, gemini
 
 router = APIRouter(prefix="/api/advisor", tags=["advisor"])
+
+# Structured-policy results are deterministic per route; cache to avoid
+# re-running Gemini on every country click.
+_STRUCTURE_CACHE: dict[tuple[str, str, str], dict] = {}
+
+# Crawled pages share boilerplate prefixes (cookie banners, nav). Strip a known
+# lead so dedup and display don't choke on it.
+_BOILERPLATE = ("cookies on", "we use some essential cookies", "skip to main content",
+                "accept additional cookies", "hide this message", "additional cookies",
+                "understand how you use", "remember your settings", "javascript")
+
+
+def _strip_boilerplate(text: str) -> str:
+    """Remove leading cookie/nav sentences from a crawled page."""
+    if not text:
+        return ""
+    sentences = text.split(". ")
+    cleaned = [s for s in sentences if not any(b in s.lower() for b in _BOILERPLATE)]
+    return ". ".join(cleaned).strip()
+
+
+def _dedup_key(text: str) -> str:
+    """A dedup key that survives shared boilerplate prefixes."""
+    return _strip_boilerplate(text)[:120].lower()
 
 
 @router.post("/requirements", response_model=AdvisorResponse)
@@ -11,13 +35,16 @@ async def get_requirements(req: AdvisorRequest):
     """Get official visa requirements for a nationality→destination route."""
 
     # 1. ES|QL exact lookup — matches specific nationality OR "ALL" (crawl-derived)
+    # Sort structured seed policies (those with a known fee) to the top so the
+    # hand-curated data outranks raw crawled pages.
     esql_query = (
         "FROM visa-policies "
         "| WHERE (nationality == ?nationality OR nationality == \"ALL\") "
         "  AND destination == ?destination AND purpose == ?purpose "
         "| KEEP requirement_text, documents_needed, fee_usd, processing_days, "
         "  source_url, source_name, last_updated, purpose "
-        "| LIMIT 20"
+        "| SORT fee_usd DESC NULLS LAST "
+        "| LIMIT 30"
     )
     try:
         esql_result = es.esql.query(
@@ -89,11 +116,12 @@ async def get_requirements(req: AdvisorRequest):
     columns = [c["name"] for c in esql_result.get("columns", [])]
     for row in esql_result.get("values", []):
         record = dict(zip(columns, row))
-        key = record.get("requirement_text", "")[:80]
+        text = _strip_boilerplate(record.get("requirement_text") or "")
+        key = _dedup_key(text)
         if key and key not in seen:
             seen.add(key)
             requirements.append(PolicyResult(
-                requirement_text=record.get("requirement_text", ""),
+                requirement_text=text,
                 documents_needed=record.get("documents_needed"),
                 fee_usd=record.get("fee_usd"),
                 processing_days=record.get("processing_days"),
@@ -105,11 +133,12 @@ async def get_requirements(req: AdvisorRequest):
     # From semantic search (structured policies)
     for hit in semantic_result.get("hits", {}).get("hits", []):
         src = hit["_source"]
-        key = src.get("requirement_text", "")[:80]
+        text = _strip_boilerplate(src.get("requirement_text") or "")
+        key = _dedup_key(text)
         if key and key not in seen:
             seen.add(key)
             requirements.append(PolicyResult(
-                requirement_text=src.get("requirement_text", ""),
+                requirement_text=text,
                 documents_needed=src.get("documents_needed"),
                 fee_usd=src.get("fee_usd"),
                 processing_days=src.get("processing_days"),
@@ -121,9 +150,9 @@ async def get_requirements(req: AdvisorRequest):
     # From crawled government pages (real scraped content)
     for hit in crawl_result.get("hits", {}).get("hits", []):
         src = hit["_source"]
-        body = (src.get("body") or "")[:3000]
+        body = _strip_boilerplate((src.get("body") or "")[:3000])
         title = src.get("title", "")
-        key = (title or body[:80])[:80]
+        key = _dedup_key(title or body)
         if key and key not in seen:
             seen.add(key)
             requirements.append(PolicyResult(
@@ -142,6 +171,83 @@ async def get_requirements(req: AdvisorRequest):
         purpose=req.purpose,
         requirements=requirements,
     )
+
+
+def _clean_policy_text(text: str) -> str:
+    """Drop obvious crawl boilerplate before sending to the LLM."""
+    junk = ("cookies on", "we use some essential", "javascript", "skip to main",
+            "accept additional cookies", "hide this message", "gov.uk")
+    lines = [ln.strip() for ln in text.replace("\n", " ").split(". ")]
+    kept = [ln for ln in lines if ln and not any(j in ln.lower() for j in junk)]
+    return ". ".join(kept)
+
+
+@router.post("/structured")
+async def structured_requirements(req: AdvisorRequest):
+    """LLM-structured visa requirements: messy crawled policy text → clean fields.
+
+    Falls back to the raw structured policy fields when Gemini is unavailable.
+    """
+    cache_key = (req.nationality, req.destination, req.purpose)
+    if cache_key in _STRUCTURE_CACHE:
+        return _STRUCTURE_CACHE[cache_key]
+
+    base = await get_requirements(req)
+    reqs = base.requirements
+
+    if not reqs:
+        result = {
+            "nationality": req.nationality, "destination": req.destination, "purpose": req.purpose,
+            "found": False, "ai_structured": False,
+            "visa_name": None, "summary": None, "fee": None, "processing_time": None,
+            "key_requirements": [], "documents": [], "steps": [],
+            "source_name": None, "source_url": None,
+        }
+        return result
+
+    raw = _clean_policy_text("\n\n".join(r.requirement_text for r in reqs[:6]))
+    fee_hint = next((r.fee_usd for r in reqs if r.fee_usd), None)
+    days_hint = next((r.processing_days for r in reqs if r.processing_days), None)
+    source = next((r for r in reqs if r.source_url), reqs[0])
+
+    structured = await gemini.structure_policy(
+        req.nationality, req.destination, req.purpose, raw, fee_hint, days_hint,
+    )
+
+    if structured:
+        result = {
+            "nationality": req.nationality, "destination": req.destination, "purpose": req.purpose,
+            "found": True, "ai_structured": True,
+            "visa_name": structured.get("visa_name"),
+            "summary": structured.get("summary"),
+            "fee": structured.get("fee") or (f"${fee_hint:.0f}" if fee_hint else None),
+            "processing_time": structured.get("processing_time") or (f"~{days_hint} days" if days_hint else None),
+            "key_requirements": structured.get("key_requirements", [])[:6],
+            "documents": structured.get("documents", [])[:8],
+            "steps": structured.get("steps", [])[:6],
+            "source_name": source.source_name,
+            "source_url": source.source_url,
+        }
+    else:
+        # No-LLM fallback: lightly structured from raw fields
+        first = reqs[0]
+        sentences = [s.strip() for s in first.requirement_text.split(". ") if s.strip()]
+        result = {
+            "nationality": req.nationality, "destination": req.destination, "purpose": req.purpose,
+            "found": True, "ai_structured": False,
+            "visa_name": None,
+            "summary": (sentences[0] + ".") if sentences else first.requirement_text[:200],
+            "fee": f"${fee_hint:.0f}" if fee_hint else None,
+            "processing_time": f"~{days_hint} days" if days_hint else None,
+            "key_requirements": [s for s in sentences[1:6]],
+            "documents": [d.strip() for d in (first.documents_needed or "").split(",") if d.strip()][:8],
+            "steps": [],
+            "source_name": source.source_name,
+            "source_url": source.source_url,
+        }
+
+    _STRUCTURE_CACHE[cache_key] = result
+    return result
 
 
 @router.post("/ask")

@@ -165,6 +165,73 @@ async def narrate_scan(question: str, handle: str, scan: dict) -> str | None:
         return None
 
 
+POLICY_STRUCTURE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "visa_name": {"type": "string", "description": "Official name of the visa, e.g. 'F-1 Student Visa' or 'Skilled Worker visa'."},
+        "summary": {"type": "string", "description": "One or two plain-language sentences a non-native English speaker can understand."},
+        "fee": {"type": ["string", "null"], "description": "Application fee with currency, e.g. '$185' or '£490'. Null if not stated."},
+        "processing_time": {"type": ["string", "null"], "description": "Typical processing time in plain words, e.g. 'about 3 weeks'. Null if not stated."},
+        "key_requirements": {"type": "array", "items": {"type": "string"}, "description": "3-6 concise eligibility requirements."},
+        "documents": {"type": "array", "items": {"type": "string"}, "description": "Documents the applicant must provide."},
+        "steps": {"type": "array", "items": {"type": "string"}, "description": "Application steps in order, if described."},
+    },
+    "required": ["visa_name", "summary", "key_requirements"],
+}
+
+POLICY_STRUCTURE_PROMPT = """You are given raw official visa-policy text crawled from government
+websites. It is messy — it may contain navigation menus, cookie banners, and unrelated boilerplate.
+
+Extract clean, structured information for a {purpose} visa for a citizen of {nationality} traveling
+to {destination}. Rules:
+- IGNORE cookie notices, navigation, and any text not about this visa.
+- Use ONLY facts present in the text. Do NOT invent fees, timelines, or rules.
+- If the fee or processing time isn't stated, return null for that field.
+- Keep each requirement and document to one short line.
+- Write the summary in simple English for a non-native speaker.
+{hint}
+RAW POLICY TEXT:
+{raw}"""
+
+
+async def structure_policy(
+    nationality: str,
+    destination: str,
+    purpose: str,
+    raw_text: str,
+    fee_hint: float | None = None,
+    days_hint: int | None = None,
+) -> dict | None:
+    """Turn messy crawled policy text into a clean structured object. None on failure."""
+    if not available() or not raw_text.strip():
+        return None
+    hints = []
+    if fee_hint:
+        hints.append(f"A structured fee of about ${fee_hint:.0f} USD is on record — use it unless the text is clearer.")
+    if days_hint:
+        hints.append(f"A processing time of about {days_hint} days is on record — use it unless the text is clearer.")
+    hint = ("KNOWN DATA: " + " ".join(hints) + "\n") if hints else ""
+    try:
+        client = _get_client()
+        resp = await client.aio.models.generate_content(
+            model=settings.gemini_model,
+            contents=POLICY_STRUCTURE_PROMPT.format(
+                nationality=nationality,
+                destination=destination,
+                purpose=purpose,
+                hint=hint,
+                raw=raw_text[:14000],
+            ),
+            config={
+                "response_mime_type": "application/json",
+                "response_json_schema": POLICY_STRUCTURE_SCHEMA,
+            },
+        )
+        return json.loads(resp.text)
+    except Exception:
+        return None
+
+
 async def synthesize(
     question: str,
     nationality: str,
