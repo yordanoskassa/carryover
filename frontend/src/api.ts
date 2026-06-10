@@ -62,6 +62,31 @@ export function evaluateAgency(post_text: string, agency_name?: string, corridor
   });
 }
 
+export interface ScanPost {
+  text: string;
+  date: string | null;
+  risk_score: number;
+  verdict: string;
+  evidence: { type: string; description: string; confidence: number }[];
+}
+
+export interface ScanAgencyResponse {
+  agency: { handle: string; title: string; description: string | null };
+  posts_scanned: number;
+  posts_indexed: number;
+  aggregate_risk: number;
+  verdict: string;
+  phones_found: string[];
+  posts: ScanPost[];
+}
+
+export function scanAgency(handle: string, corridor?: string) {
+  return request<ScanAgencyResponse>('/inspector/scan-agency', {
+    method: 'POST',
+    body: JSON.stringify({ handle, corridor }),
+  });
+}
+
 export function reportScam(data: {
   post_text: string;
   agency_name?: string;
