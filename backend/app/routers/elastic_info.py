@@ -28,6 +28,9 @@ INDEX_META = [
     ("policy-history", "Policy change history",
      "Snapshots of policy changes for the Watchtower trend detection.",
      "Snapshots", False),
+    ("visa-news", "Live visa news",
+     "Recent immigration-news headlines powering the live ticker.",
+     "Firecrawl news search", False),
 ]
 
 

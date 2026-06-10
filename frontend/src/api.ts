@@ -81,6 +81,20 @@ export function getElasticOverview() {
   return request<ElasticOverview>('/elastic/overview');
 }
 
+// ── Live visa news (ticker) ──────────────────────────────────────────────
+
+export interface NewsItem {
+  title: string;
+  source: string;
+  url: string;
+  date_text: string;
+  tone: 'good' | 'warning' | 'neutral';
+}
+
+export function getVisaNews() {
+  return request<{ items: NewsItem[] }>('/news/recent');
+}
+
 // ── Inspector ────────────────────────────────────────────────────────────
 
 export interface EvidenceItem {

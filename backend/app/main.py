@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import advisor, inspector, dashboard, ingest, kibo, elastic_info
+from app.routers import advisor, inspector, dashboard, ingest, kibo, elastic_info, news
 from app.services import agent_builder
 
 settings = get_settings()
@@ -26,6 +26,7 @@ app.include_router(dashboard.router)
 app.include_router(ingest.router)
 app.include_router(kibo.router)
 app.include_router(elastic_info.router)
+app.include_router(news.router)
 
 
 @app.get("/")
