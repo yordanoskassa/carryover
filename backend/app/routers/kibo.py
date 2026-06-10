@@ -19,7 +19,7 @@ import re
 from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import AdvisorRequest, InspectorRequest, KiboChatRequest
-from app.routers.advisor import get_requirements
+from app.routers.advisor import structured_requirements
 from app.routers.inspector import evaluate_agency, scan_agency, ScanAgencyRequest
 from app.services import gemini
 
@@ -70,22 +70,16 @@ def _heuristic_route(req: KiboChatRequest) -> dict:
     }
 
 
-def _trim_advisor(result) -> dict:
-    """Top requirements only — agent cards are compact."""
-    reqs = []
-    for r in result.requirements[:3]:
-        reqs.append({
-            "requirement_text": r.requirement_text[:220],
-            "fee_usd": r.fee_usd,
-            "processing_days": r.processing_days,
-            "source_url": r.source_url,
-            "source_name": r.source_name,
-            "last_updated": r.last_updated,
-        })
+def _trim_advisor(result: dict) -> dict:
+    """Clean structured policy for the Advisor card (visa name, fee, requirements)."""
     return {
-        "requirements": reqs,
-        "total_found": len(result.requirements),
-        "purpose": result.purpose,
+        "visa_name": result.get("visa_name"),
+        "summary": (result.get("summary") or "")[:240],
+        "fee": result.get("fee"),
+        "processing_time": result.get("processing_time"),
+        "requirements": (result.get("key_requirements") or [])[:4],
+        "source_name": result.get("source_name"),
+        "source_url": result.get("source_url"),
     }
 
 
@@ -234,7 +228,7 @@ async def kibo_chat(req: KiboChatRequest):
             corridor=f"{req.nationality}->{req.destination}",
         ))
     if "advisor" in agents:
-        tasks["advisor"] = get_requirements(AdvisorRequest(
+        tasks["advisor"] = structured_requirements(AdvisorRequest(
             nationality=req.nationality,
             destination=req.destination,
             purpose=req.purpose,

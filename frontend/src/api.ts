@@ -230,16 +230,13 @@ export interface InspectorCardData {
 }
 
 export interface AdvisorCardData {
-  requirements: {
-    requirement_text: string;
-    fee_usd: number | null;
-    processing_days: number | null;
-    source_url: string;
-    source_name: string;
-    last_updated: string | null;
-  }[];
-  total_found: number;
-  purpose: string;
+  visa_name: string | null;
+  summary: string;
+  fee: string | null;
+  processing_time: string | null;
+  requirements: string[];
+  source_name: string | null;
+  source_url: string | null;
 }
 
 export interface KiboAgentCardEvent {

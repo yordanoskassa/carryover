@@ -131,7 +131,6 @@ function InspectorCard({ data, tools }: { data: InspectorCardData; tools: string
 
 function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }) {
   const meta = AGENT_META.advisor;
-  const top = data.requirements.slice(0, 2);
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -142,29 +141,35 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
         <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${meta.text}`}>
           <meta.Icon size={14} weight="bold" /> Advisor
         </span>
-        {top[0]?.source_name && (
+        {data.source_name && (
           <span className="text-[9px] text-muted-foreground truncate max-w-[45%]">
-            {top[0].source_name} · official source
+            {data.source_name} · official source
           </span>
         )}
       </div>
-      <div className="space-y-2">
-        {top.map((r, i) => (
-          <div key={i} className="text-[11px] leading-snug text-foreground/90">
-            <p>{r.requirement_text}</p>
-            {(r.fee_usd != null || r.processing_days != null) && (
-              <p className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
-                {r.fee_usd != null && <>Fee ${Math.round(r.fee_usd)}</>}
-                {r.fee_usd != null && r.processing_days != null && ' · '}
-                {r.processing_days != null && <>~{r.processing_days} days processing</>}
-              </p>
-            )}
-          </div>
-        ))}
-        {top.length === 0 && (
-          <p className="text-[11px] text-muted-foreground">No official policy indexed for this route yet.</p>
-        )}
-      </div>
+      {data.visa_name ? (
+        <>
+          <p className="text-[11px] font-semibold text-foreground">{data.visa_name}</p>
+          {(data.fee || data.processing_time) && (
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {data.fee && <>Fee {data.fee}</>}
+              {data.fee && data.processing_time && ' · '}
+              {data.processing_time && <>{data.processing_time}</>}
+            </p>
+          )}
+          {data.requirements.length > 0 && (
+            <ul className="mt-1.5 space-y-1">
+              {data.requirements.map((r, i) => (
+                <li key={i} className="text-[11px] leading-snug text-foreground/90 flex items-start gap-1.5">
+                  <span className="text-emerald-400 mt-0.5">✓</span><span>{r}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <p className="text-[11px] text-muted-foreground">No official policy indexed for this route yet.</p>
+      )}
       <div className="mt-2 pt-1.5 border-t text-[9px] text-muted-foreground font-mono truncate">
         {tools.join(' · ')}
       </div>
