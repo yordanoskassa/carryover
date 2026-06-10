@@ -9,14 +9,9 @@ destination country, visa purpose, and extracts requirement details.
 """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
-os.environ.setdefault(
-    "ELASTICSEARCH_URL",
-    "https://my-observability-project-acf12a.es.us-central1.gcp.elastic.cloud",
-)
-os.environ.setdefault(
-    "ELASTICSEARCH_API_KEY",
-    "Uk5DX3JaNEJqMVpqTUpfN0tEYVg6ZEkzaGV3U0k1U2lxcmFXRnpXaVd0Zw==",
-)
+
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 from elasticsearch import Elasticsearch
 
