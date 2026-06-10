@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
@@ -246,6 +247,65 @@ def _clean_policy_text(text: str) -> str:
     return ". ".join(kept)
 
 
+# Destination → crawled site host, so we can pull the right country's full pages.
+DEST_HOST = {
+    "GB": "www.gov.uk", "US": "travel.state.gov", "CA": "www.canada.ca",
+    "DE": "www.auswaertiges-amt.de", "FR": "france-visas.gouv.fr", "NL": "ind.nl",
+    "AE": "icp.gov.ae", "TR": "www.mfa.gov.tr", "AU": "immi.homeaffairs.gov.au",
+    "IE": "www.irishimmigration.ie", "SE": "www.migrationsverket.se",
+    "DK": "www.nyidanmark.dk", "NO": "www.udi.no", "FI": "migri.fi",
+    "AT": "www.migration.gv.at", "CH": "www.sem.admin.ch", "GR": "migration.gov.gr",
+    "PT": "vistos.mne.gov.pt", "ES": "www.exteriores.gob.es", "PL": "www.gov.pl",
+    "CZ": "mzv.gov.cz", "BE": "dofi.ibz.be", "IT": "vistoperitalia.esteri.it",
+    "JP": "www.mofa.go.jp", "SG": "www.ica.gov.sg", "KR": "www.immigration.go.kr",
+    "NZ": "www.immigration.govt.nz", "TH": "consular.mfa.go.th",
+    "SA": "visitsaudi.com", "QA": "visitqatar.com", "RU": "evisa.kdmid.ru",
+    "ZA": "www.dha.gov.za",
+}
+
+_PURPOSE_QUERY = {
+    "student": "student study visa requirements course tuition fees documents how to apply",
+    "work": "work employment permit visa requirements job documents how to apply fees",
+    "family": "family join spouse partner visa requirements documents how to apply",
+    "tourist": "visitor tourist short stay visa requirements documents how to apply fees",
+}
+
+# Long nav strings shared across a site's pages — strip so the LLM sees content.
+_NAV_RE = re.compile(
+    r"skip to (main )?content.*?(more results\.\.\.|quick links|search)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _fetch_full_pages(destination: str, purpose: str, n: int = 6) -> list[dict]:
+    """Top full crawled pages for a route — richer context than indexed chunks."""
+    host = DEST_HOST.get(destination)
+    query_text = _PURPOSE_QUERY.get(purpose, f"{purpose} visa requirements")
+    body = {
+        "size": n,
+        "query": {"bool": {
+            "must": [{"match": {"body": query_text}}],
+            "filter": [{"term": {"url_host": host}}] if host else [],
+        }},
+        "_source": ["title", "body", "url", "url_host"],
+    }
+    try:
+        res = es.search(index="crawled-visa-pages", body=body)
+        out = []
+        for hit in res.get("hits", {}).get("hits", []):
+            src = hit["_source"]
+            raw_body = _NAV_RE.sub(" ", (src.get("body") or ""))
+            out.append({
+                "title": src.get("title", ""),
+                "body": _clean_policy_text(raw_body)[:2800],
+                "url": src.get("url", ""),
+                "host": src.get("url_host", ""),
+            })
+        return out
+    except Exception:
+        return []
+
+
 @router.post("/structured")
 async def structured_requirements(req: AdvisorRequest):
     """LLM-structured visa requirements: messy crawled policy text → clean fields.
@@ -270,10 +330,23 @@ async def structured_requirements(req: AdvisorRequest):
             "source_name": None, "source_url": None,
         }
 
-    raw = _clean_policy_text("\n\n".join(r.requirement_text for r in reqs[:6]))
+    # Lead with clean structured/seed text, then add full crawled pages for the
+    # route so the LLM has the real fees, steps, and documents (not nav-heavy chunks).
+    # Full crawled pages carry the real fees/steps; lead with them. Seed text
+    # (clean curated policies, when present) follows.
+    seed_text = _clean_policy_text("\n\n".join(r.requirement_text for r in reqs[:3]))
+    pages = _fetch_full_pages(req.destination, req.purpose)
+    page_text = "\n\n".join(f"[{p['title']}]\n{p['body']}" for p in pages if p["body"])
+    raw = (page_text + "\n\n" + seed_text).strip()
+
     fee_hint = next((r.fee_usd for r in reqs if r.fee_usd), None)
     days_hint = next((r.processing_days for r in reqs if r.processing_days), None)
-    source = next((r for r in reqs if r.source_url), reqs[0])
+    # Prefer a structured/seed source; else the first crawled page for the route.
+    source = next((r for r in reqs if r.fee_usd and r.source_url), None)
+    if source is None and pages:
+        source = type("S", (), {"source_name": f"{pages[0]['host']}", "source_url": pages[0]["url"]})()
+    if source is None:
+        source = next((r for r in reqs if r.source_url), reqs[0])
 
     structured = await gemini.structure_policy(
         req.nationality, req.destination, req.purpose, raw, fee_hint, days_hint,

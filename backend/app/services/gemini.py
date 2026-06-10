@@ -220,7 +220,7 @@ async def structure_policy(
                 destination=destination,
                 purpose=purpose,
                 hint=hint,
-                raw=raw_text[:14000],
+                raw=raw_text[:16000],
             ),
             config={
                 "response_mime_type": "application/json",
