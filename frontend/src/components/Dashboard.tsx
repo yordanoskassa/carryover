@@ -30,7 +30,7 @@ export interface DashboardStats {
   sharedPhones: number;
 }
 
-export default function Dashboard({ onStats }: { onStats?: (stats: DashboardStats) => void }) {
+export default function Dashboard({ onStats, refreshKey = 0 }: { onStats?: (stats: DashboardStats) => void; refreshKey?: number }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [agencies, setAgencies] = useState<Record<string, unknown>[]>([]);
   const [phones, setPhones] = useState<Record<string, unknown>[]>([]);
@@ -60,7 +60,7 @@ export default function Dashboard({ onStats }: { onStats?: (stats: DashboardStat
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [refreshKey]);
 
   const corridorChartData = data?.corridor_stats
     .reduce<Record<string, { corridor: string; reports: number; agencies: number }>>((acc, s) => {

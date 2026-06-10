@@ -23,7 +23,8 @@ import Inspector from './components/Inspector';
 import Dashboard, { type DashboardStats } from './components/Dashboard';
 import VisaOverview from './components/VisaOverview';
 import Kibo from './components/Kibo';
-import { getVisaOverview, getRequirements, getDashboard, getFlaggedAgencies, getFlaggedPhones, type VisaOverviewData, type PolicyResult } from './api';
+import AgencyInvestigation from './components/AgencyInvestigation';
+import { getVisaOverview, getRequirements, getDashboard, getFlaggedAgencies, getFlaggedPhones, type VisaOverviewData, type PolicyResult, type ScanAgencyResponse } from './api';
 import { DEST_DATA } from './data/destinations';
 import './index.css';
 
@@ -83,6 +84,16 @@ export default function App() {
   const [detailReqs, setDetailReqs] = useState<PolicyResult[]>([]);
   const [detailPurpose, setDetailPurpose] = useState('student');
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Kibo-driven agency investigation pushed into the dashboard panel.
+  const [investigation, setInvestigation] = useState<ScanAgencyResponse | null>(null);
+  const [dashRefresh, setDashRefresh] = useState(0);
+
+  const handleInvestigation = (data: ScanAgencyResponse) => {
+    setInvestigation(data);
+    setActiveTab('agency');
+    setDashRefresh((k) => k + 1); // scan indexed new posts → re-pull dashboard
+  };
 
   useEffect(() => { localStorage.setItem('co_nationality', nationality); }, [nationality]);
   useEffect(() => { localStorage.setItem('co_dest', selectedDest); }, [selectedDest]);
@@ -539,12 +550,18 @@ export default function App() {
             {/* AGENCY WATCH */}
             {activeTab === 'agency' && (
               <div className="p-4 overflow-y-auto h-full space-y-3">
+                {investigation && (
+                  <AgencyInvestigation
+                    data={investigation}
+                    onClose={() => setInvestigation(null)}
+                  />
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   <div className="border rounded-lg p-4">
                     <Inspector />
                   </div>
                   <div className="border rounded-lg p-4">
-                    <Dashboard onStats={setStats} />
+                    <Dashboard onStats={setStats} refreshKey={dashRefresh} />
                   </div>
                 </div>
               </div>
@@ -563,7 +580,12 @@ export default function App() {
 
         {/* ── Kibo: full-height right sidebar ── */}
         <aside className="w-[340px] border-l shrink-0 flex flex-col">
-          <Kibo nationality={nationality} destination={selectedDest} purpose={detailPurpose} />
+          <Kibo
+            nationality={nationality}
+            destination={selectedDest}
+            purpose={detailPurpose}
+            onInvestigation={handleInvestigation}
+          />
         </aside>
       </div>
     </div>

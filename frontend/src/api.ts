@@ -211,7 +211,12 @@ export interface KiboReplyEvent {
   engine: 'gemini' | 'elastic-fallback';
 }
 
-export type KiboEvent = KiboHandoffEvent | KiboAgentCardEvent | KiboReplyEvent;
+export interface KiboScanEvent {
+  kind: 'scan_result';
+  data: ScanAgencyResponse;
+}
+
+export type KiboEvent = KiboHandoffEvent | KiboAgentCardEvent | KiboReplyEvent | KiboScanEvent;
 
 export function kiboChat(
   question: string,

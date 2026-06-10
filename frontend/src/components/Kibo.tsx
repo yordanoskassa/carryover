@@ -1,22 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   PaperPlaneRight, CircleNotch, Sparkle, Detective, FileText,
-  ShareNetwork, Warning, Phone, FileX, ArrowRight,
+  ShareNetwork, Warning, Phone, FileX, ArrowRight, ChartBar,
 } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import {
   kiboChat,
   type KiboEvent, type KiboAgentId,
-  type InspectorCardData, type AdvisorCardData,
+  type InspectorCardData, type AdvisorCardData, type ScanAgencyResponse,
 } from '../api';
 
 interface KiboProps {
   nationality: string;
   destination: string;
   purpose: string;
+  onInvestigation?: (data: ScanAgencyResponse) => void;
 }
 
-type ChatItem = { kind: 'user'; content: string } | KiboEvent;
+type ChatChip = { kind: 'panel_chip'; title: string };
+type ChatItem = { kind: 'user'; content: string } | ChatChip | KiboEvent;
 
 const AGENT_META: Record<KiboAgentId, {
   name: string;
@@ -170,11 +172,11 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
   );
 }
 
-export default function Kibo({ nationality, destination, purpose }: KiboProps) {
+export default function Kibo({ nationality, destination, purpose, onInvestigation }: KiboProps) {
   const [items, setItems] = useState<ChatItem[]>([
     {
       kind: 'kibo',
-      content: 'I\'m Kibo. I coordinate a team of agents — Inspector checks agency posts for fraud, Advisor pulls official visa policy. Ask me anything, or paste a suspicious offer.',
+      content: 'I\'m Kibo. I coordinate a team of agents — Inspector checks agencies for fraud, Advisor pulls official visa policy. Give me an agency handle like @someagency and I\'ll scan it, or ask me anything.',
       engine: 'elastic-fallback',
     },
   ]);
@@ -206,6 +208,13 @@ export default function Kibo({ nationality, destination, purpose }: KiboProps) {
           setItems((prev) => [...prev, event]);
           setWorkingAgents((prev) => prev.filter((a) => a !== event.agent));
           await delay(450);
+        } else if (event.kind === 'scan_result') {
+          // Heavy result goes to the dashboard panel, not the chat —
+          // leave only a slim chip behind.
+          onInvestigation?.(event.data);
+          setItems((prev) => [...prev, { kind: 'panel_chip', title: event.data.agency.title }]);
+          setWorkingAgents([]);
+          await delay(300);
         } else {
           setWorkingAgents([]);
           setItems((prev) => [...prev, event]);
@@ -257,6 +266,20 @@ export default function Kibo({ nationality, destination, purpose }: KiboProps) {
           if (item.kind === 'handoff') {
             return <HandoffRow key={i} agents={item.agents} reason={item.reason} />;
           }
+          if (item.kind === 'panel_chip') {
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-1.5 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-md px-2.5 py-1.5"
+              >
+                <ChartBar size={13} weight="bold" />
+                <span className="font-medium truncate">{item.title}</span>
+                <span className="text-muted-foreground">opened in dashboard →</span>
+              </motion.div>
+            );
+          }
           if (item.kind === 'agent_card') {
             if (item.error || !item.data) {
               return (
@@ -270,19 +293,22 @@ export default function Kibo({ nationality, destination, purpose }: KiboProps) {
               ? <InspectorCard key={i} data={item.data as InspectorCardData} tools={item.tools} />
               : <AdvisorCard key={i} data={item.data as AdvisorCardData} tools={item.tools} />;
           }
-          return (
-            <div key={i} className="flex items-start gap-2">
-              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                <Sparkle size={10} weight="fill" className="text-primary" />
+          if (item.kind === 'kibo') {
+            return (
+              <div key={i} className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <Sparkle size={10} weight="fill" className="text-primary" />
+                </div>
+                <div className="max-w-[88%] rounded-lg px-3 py-2 text-xs leading-relaxed bg-muted text-foreground">
+                  {item.content}
+                  {item.engine === 'gemini' && (
+                    <span className="block text-[9px] text-muted-foreground font-mono mt-1">synthesized by Gemini</span>
+                  )}
+                </div>
               </div>
-              <div className="max-w-[88%] rounded-lg px-3 py-2 text-xs leading-relaxed bg-muted text-foreground">
-                {item.content}
-                {item.engine === 'gemini' && (
-                  <span className="block text-[9px] text-muted-foreground font-mono mt-1">synthesized by Gemini</span>
-                )}
-              </div>
-            </div>
-          );
+            );
+          }
+          return null;
         })}
         {loading && workingAgents.length > 0 && (
           <div className="flex justify-start">
@@ -313,7 +339,7 @@ export default function Kibo({ nationality, destination, purpose }: KiboProps) {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask, or paste a suspicious offer..."
+            placeholder="Ask, or drop an @agency handle..."
             disabled={loading}
             className="flex-1 h-8 rounded-lg border border-input bg-card px-3 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring"
           />
