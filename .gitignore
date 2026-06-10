@@ -31,3 +31,19 @@ Thumbs.db
 backend/app/data/seed/*.csv
 backend/app/data/seed/*.json
 !backend/app/data/seed/sample_*.json
+
+# AI tooling / editor skill configs (local only)
+.agents/
+.gemini/
+.cursor/
+.kiro/
+.qoder/
+.claude/
+.opencode/
+.codex/
+.cline/
+.impeccable/
+.react-router/
+
+# Stray scaffold
+elastipath/

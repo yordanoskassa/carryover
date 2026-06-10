@@ -18,6 +18,9 @@ from elasticsearch import Elasticsearch
 es = Elasticsearch(
     os.environ["ELASTICSEARCH_URL"] + ":443",
     api_key=os.environ["ELASTICSEARCH_API_KEY"],
+    request_timeout=120,
+    retry_on_timeout=True,
+    max_retries=3,
 )
 
 # ── URL → metadata mapping ──────────────────────────────────────────────────
@@ -276,15 +279,30 @@ def process_pages():
     except Exception as e:
         print(f"Note: {e}")
 
-    # Bulk index in batches of 100
-    from app.services.elastic import bulk_index
-
-    batch_size = 100
+    # Bulk index in small batches — ELSER embedding makes large writes slow,
+    # so we keep batches modest and retry a failed batch once before skipping.
+    batch_size = 40
+    indexed_ok = 0
+    total_batches = (len(policies) + batch_size - 1) // batch_size
     for i in range(0, len(policies), batch_size):
         batch = policies[i : i + batch_size]
-        result = bulk_index("visa-policies", batch)
-        errors = result.get("errors", False)
-        print(f"  Indexed batch {i // batch_size + 1}: {len(batch)} docs, errors={errors}")
+        ops = []
+        for doc in batch:
+            ops.append({"index": {"_index": "visa-policies"}})
+            ops.append(doc)
+        n = i // batch_size + 1
+        for attempt in (1, 2):
+            try:
+                es.bulk(operations=ops)
+                indexed_ok += len(batch)
+                print(f"  Batch {n}/{total_batches}: {len(batch)} docs OK")
+                break
+            except Exception as e:
+                if attempt == 2:
+                    print(f"  Batch {n}/{total_batches}: SKIPPED after retry ({type(e).__name__})")
+                else:
+                    print(f"  Batch {n}/{total_batches}: timeout, retrying...")
+    print(f"\nIndexed {indexed_ok}/{len(policies)} policy chunks")
 
     # Final count
     import time
