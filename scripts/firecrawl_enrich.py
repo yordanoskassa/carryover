@@ -321,6 +321,65 @@ POLICIES = [
         "source_url": "https://www.exteriores.gob.es/en/ServiciosAlCiudadano/Paginas/Visados.aspx",
     },
     {
+        "destination": "AT", "purpose": "student",
+        "visa_name": "Residence Permit – Student (Aufenthaltsbewilligung Studierende)",
+        "summary": ("Austria's residence permit for non-EU students admitted to a recognised "
+                    "Austrian higher-education institution, with proof of funds and full health cover."),
+        "fee": "€218",
+        "processing_time": "up to 90 days",
+        "key_requirements": [
+            "Admission to a recognised Austrian higher-education institution",
+            "Proof of funds: €722.58/month (under 24) or €1,308.39/month (24+)",
+            "Health insurance covering all risks",
+            "Proof of accommodation in Austria",
+        ],
+        "documents": [
+            "Valid passport", "Passport-sized photograph",
+            "Letter of admission from the Austrian institution",
+            "Proof of sufficient financial means", "Proof of accommodation",
+            "Health insurance covering all risks",
+            "Police clearance certificate (if applicable)",
+        ],
+        "steps": [
+            "Get a letter of admission from an Austrian institution",
+            "Submit the residence-permit application at the Austrian representation",
+            "Provide funds, insurance and accommodation evidence",
+            "Collect the permit (processing up to 90 days)",
+        ],
+        "source_name": "Austria Migration Authority (migration.gv.at)",
+        "source_url": "https://www.migration.gv.at/en/types-of-immigration/permanent-immigration/students/",
+    },
+    {
+        "destination": "AT", "purpose": "work",
+        "visa_name": "Red-White-Red Card",
+        "summary": ("Austria's points-based work and residence permit for skilled non-EU workers. "
+                    "You need a qualifying job offer and enough points across qualification, "
+                    "experience, language, and age."),
+        "fee": "€218",
+        "processing_time": "varies by case",
+        "key_requirements": [
+            "A qualifying job offer from an Austrian employer",
+            "At least 55 points (qualification, work experience, language skills, age)",
+            "Minimum gross salary around €3,465/month (2026)",
+            "Health insurance covering all risks",
+        ],
+        "documents": [
+            "Valid passport", "Recent photo (45x35mm)",
+            "Employment contract or binding job offer",
+            "Evidence of qualifications and work experience",
+            "Proof of health insurance",
+            "Evidence of adequate means of subsistence (pay slips, contract)",
+        ],
+        "steps": [
+            "Secure a qualifying job offer from an Austrian employer",
+            "The employer or you submit the Red-White-Red Card application",
+            "Provide qualification, salary and insurance evidence",
+            "Receive the combined work + residence permit",
+        ],
+        "source_name": "Austria Migration Authority (migration.gv.at)",
+        "source_url": "https://www.migration.gv.at/en/types-of-immigration/permanent-immigration/red-white-red-card/",
+    },
+    {
         "destination": "GR", "purpose": "student",
         "visa_name": "National (Type D) Student Visa",
         "summary": ("Greece's national long-stay visa for non-EU students accepted to a Greek "

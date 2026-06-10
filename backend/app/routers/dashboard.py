@@ -205,9 +205,24 @@ async def get_visa_overview(nationality: str = "ET"):
     except Exception:
         pass
 
+    # Structured-policy coverage per destination — destinations with complete,
+    # cited guidance (fee, funds, steps) lead the list, since those are the ones
+    # we can actually help travelers with.
+    structured_counts: dict[str, int] = {}
+    try:
+        sres = es.search(index="structured-policies", body={"size": 0, "aggs": {
+            "by_dest": {"terms": {"field": "destination", "size": 50}}}})
+        for b in sres.get("aggregations", {}).get("by_dest", {}).get("buckets", []):
+            structured_counts[b["key"]] = b["doc_count"]
+    except Exception:
+        pass
+
     # Build restriction entries — every destination with indexed policy data,
     # plus the baseline set so the list is never empty before a crawl.
-    destinations = sorted(baseline | {d for d in policy_counts if d in dest_names})
+    destinations = sorted(
+        baseline | {d for d in policy_counts if d in dest_names}
+        | {d for d in structured_counts if d in dest_names}
+    )
     max_policies = max(policy_counts.values()) if policy_counts else 1
     max_scams = max(scam_counts.values()) if scam_counts else 1
 
@@ -216,10 +231,12 @@ async def get_visa_overview(nationality: str = "ET"):
         policies = policy_counts.get(dest, 0)
         scams = scam_counts.get(dest, 0)
 
-        # Score: more policies = more open, more scams = riskier
-        policy_score = (policies / max_policies * 60) if max_policies else 30
-        scam_penalty = (scams / max_scams * 40) if max_scams else 0
-        score = max(5, min(95, int(policy_score + 30 - scam_penalty)))
+        # Score rewards destinations we can fully guide on: structured coverage
+        # (cited fee/funds/steps) dominates, crawl breadth is a minor factor.
+        policy_score = min((policies / max_policies * 15) if max_policies else 8, 15)
+        scam_penalty = min((scams / max_scams * 25) if max_scams else 0, 25)
+        coverage_boost = min(structured_counts.get(dest, 0), 3) * 25
+        score = max(5, min(98, int(30 + coverage_boost + policy_score - scam_penalty)))
 
         if score >= 65:
             label = "Open"
@@ -237,7 +254,9 @@ async def get_visa_overview(nationality: str = "ET"):
             "scam_reports": scams,
         })
 
-    entries.sort(key=lambda x: x["score"], reverse=True)
+    # Feature the fully-covered showcase destination first, then rank by score.
+    FEATURED = "AT"
+    entries.sort(key=lambda x: (x["code"] == FEATURED, x["score"]), reverse=True)
 
     return {
         "nationality": nationality,
