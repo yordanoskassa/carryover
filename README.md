@@ -1,0 +1,122 @@
+# Carryover
+
+**Your safe path to migrate.** Carryover is a fraud-protection and visa-guidance
+platform for migrants — built for people from East Africa, South Asia, and West
+Africa who are targeted by fake "guaranteed visa" agencies.
+
+Built for the **Google Cloud Rapid Agent Hackathon — Elastic track**, powered by
+**Gemini** and **Elastic Agent Builder**.
+
+---
+
+## What it does
+
+Carryover runs a team of AI agents, orchestrated by **Kibo**:
+
+- **Advisor** — answers what an official visa actually requires (name, fee,
+  funds, processing time, documents, steps) for any nationality → destination →
+  purpose, grounded in official government sources with citations.
+- **Inspector** — checks whether an agency is a scam. Paste a suspicious offer,
+  or give Kibo a Telegram agency handle, and it pulls the channel's posts, scores
+  them for fraud signals, cross-checks claims against official policy, and flags
+  phone numbers reused across multiple agencies.
+- **Kibo (orchestrator)** — Gemini decides which specialists handle a request,
+  runs them, and synthesizes the result. Confirmed scams and scanned agencies are
+  written **back** into Elasticsearch, so every check makes the system smarter.
+
+## How it uses the partner tech
+
+**Elastic** is the system of record and the search/agent layer:
+
+- **Elastic Agent Builder** — the Inspector and Advisor agents and **8 custom
+  tools** (semantic search, ES|QL analytics, identity-reuse detection) live in
+  Agent Builder and are exposed to Gemini through the **Agent Builder MCP server**.
+- **ELSER** — semantic search over visa policies and known-scam patterns
+  (`semantic_text` fields).
+- **ES|QL** — identity-reuse detection (phones/handles shared across agencies)
+  and corridor/trend analytics.
+- **Elastic Open Crawler** — scheduled ingestion of official immigration/embassy
+  pages into Elasticsearch.
+- **Agent memory write-back** — user scam reports and agency scans flow back into
+  Elasticsearch.
+
+**Google Cloud / Gemini** is the reasoning layer: agent routing, synthesis,
+structuring messy government text into clean policy, and **Google Search
+grounding** to fill routes with no indexed data.
+
+## Data (~12,000 docs across six indices)
+
+Ingested from five sources, all searched in Elasticsearch:
+
+| Index | Docs | Source |
+| --- | --- | --- |
+| `crawled-visa-pages` | ~5,100 | Elastic Open Crawler (official gov sites) |
+| `visa-policies` | ~2,760 | Crawler → processed + ELSER (semantic) |
+| `agency-posts` | ~2,600 | Live Telegram agency channels (Firecrawl-discovered) |
+| `known-scams` | ~1,350 | CFPB public consumer-fraud database + ELSER |
+| `structured-policies` | ~30 | Gemini structuring + Firecrawl + Google-Search grounding |
+| `visa-news` | live | Firecrawl news search |
+
+> Note: Firecrawl and the CFPB database are supplementary **ingestion** sources;
+> Elasticsearch is the single store the agents search.
+
+## Tech stack
+
+- **Frontend:** React + TypeScript + Vite + Tailwind
+- **Backend:** FastAPI (Python)
+- **AI:** Gemini (Google), Elastic Agent Builder + MCP, ELSER, ES|QL
+- **Ingestion:** Elastic Open Crawler, Firecrawl, CFPB API
+
+## Running locally
+
+### 1. Prerequisites
+- An **Elasticsearch (Search) Serverless** project (Agent Builder requires the
+  Search project type, not Observability).
+- A Gemini API key.
+- Python 3.11+, Node 18+.
+
+### 2. Configure `.env` (repo root)
+```
+ELASTICSEARCH_URL=https://<your-project>.es.<region>.gcp.elastic.cloud
+ELASTICSEARCH_API_KEY=<encoded key>
+KIBANA_URL=https://<your-project>.kb.<region>.gcp.elastic.cloud
+AGENT_BUILDER_API_KEY=<encoded key>
+GEMINI_API_KEY=<your gemini key>
+```
+
+### 3. Backend
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt
+cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+```
+
+### 4. Register Elastic indices, tools, and agents
+```bash
+curl -X POST http://localhost:8001/api/setup
+```
+This creates the indices and registers the 8 Agent Builder tools + the Advisor
+and Inspector agents (visible in Kibana → Agents).
+
+### 5. Frontend
+```bash
+cd frontend && npm install && npm run dev
+```
+Open http://localhost:5173.
+
+### 6. (Optional) Load data
+```bash
+python scripts/seed_policies.py            # curated seed policies
+python scripts/firecrawl_enrich.py         # Firecrawl-verified fees/funds
+python scripts/ingest_telegram_channels.py # agency channels
+python scripts/ingest_cfpb_api.py          # CFPB fraud narratives
+# Crawl official pages (requires Docker):
+bash crawler/run_all.sh
+```
+
+## Known follow-ups
+- Versioned index names + aliases for zero-downtime reindexing.
+- Route Gemini's tool calls through the Agent Builder MCP server end-to-end.
+
+## License
+MIT — see [LICENSE](LICENSE).
