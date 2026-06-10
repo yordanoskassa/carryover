@@ -13,6 +13,17 @@ import httpx
 from bs4 import BeautifulSoup
 
 _PHONE = re.compile(r"\+?\d[\d\s().-]{7,}\d")
+
+
+def _extract_phones(text: str) -> list[str]:
+    """Phone numbers from text, rejecting dates (e.g. 01.06.2026) and junk by
+    requiring 9-15 actual digits."""
+    out = []
+    for m in _PHONE.findall(text or ""):
+        digits = sum(c.isdigit() for c in m)
+        if 9 <= digits <= 15:
+            out.append(m.strip())
+    return out
 _UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/125.0 Safari/537.36"
@@ -68,7 +79,7 @@ async def fetch_channel(handle: str, limit: int = 10) -> dict:
         posts.append({
             "text": text[:2000],
             "date": date,
-            "phones": [p.strip() for p in _PHONE.findall(text)],
+            "phones": _extract_phones(text),
         })
 
     return {
