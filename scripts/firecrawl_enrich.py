@@ -321,6 +321,34 @@ POLICIES = [
         "source_url": "https://www.exteriores.gob.es/en/ServiciosAlCiudadano/Paginas/Visados.aspx",
     },
     {
+        "destination": "GR", "purpose": "student",
+        "visa_name": "National (Type D) Student Visa",
+        "summary": ("Greece's national long-stay visa for non-EU students accepted to a Greek "
+                    "institution for more than 90 days, with proof of funds and health cover."),
+        "fee": "€100",
+        "processing_time": "2-3 months",
+        "key_requirements": [
+            "Acceptance letter from a Greek educational institution",
+            "At least €7,200 per year in available funds",
+            "Health insurance coverage",
+            "Proof of accommodation in Greece",
+        ],
+        "documents": [
+            "Completed visa application form", "Passport-sized photographs",
+            "Acceptance letter from the institution", "Proof of financial means",
+            "Health insurance certificate", "Proof of accommodation",
+            "Proof of visa fee payment",
+        ],
+        "steps": [
+            "Get an acceptance letter from a Greek institution",
+            "Book a consulate appointment and submit the national (type D) application",
+            "Provide funds, insurance and accommodation evidence",
+            "After arrival, apply for the residence permit",
+        ],
+        "source_name": "Greek Ministry of Migration and Asylum",
+        "source_url": "https://migration.gov.gr/en/",
+    },
+    {
         "destination": "IT", "purpose": "student",
         "visa_name": "National Visa (Type D) for Study",
         "summary": ("Italy's long-stay study visa for non-EU students with an acceptance letter, "
