@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MagnifyingGlass, Warning, CircleNotch, FileText, Clock, CurrencyDollar, Link as LinkIcon, GraduationCap, Briefcase, UsersThree, AirplaneTilt } from '@phosphor-icons/react';
+import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt } from '@phosphor-icons/react';
 
 function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
@@ -24,7 +24,8 @@ import Dashboard, { type DashboardStats } from './components/Dashboard';
 import VisaOverview from './components/VisaOverview';
 import Kibo from './components/Kibo';
 import AgencyInvestigation from './components/AgencyInvestigation';
-import { getVisaOverview, getRequirements, getDashboard, getFlaggedAgencies, getFlaggedPhones, type VisaOverviewData, type PolicyResult, type ScanAgencyResponse } from './api';
+import PolicyCard from './components/PolicyCard';
+import { getVisaOverview, getStructuredPolicy, getDashboard, getFlaggedAgencies, getFlaggedPhones, type VisaOverviewData, type StructuredPolicy, type ScanAgencyResponse } from './api';
 import { DEST_DATA } from './data/destinations';
 import './index.css';
 
@@ -63,13 +64,6 @@ const PURPOSE_META: Record<string, { icon: typeof GraduationCap; label: string }
 
 type Tab = 'destinations' | 'agency' | 'pathways';
 
-function parseRequirementText(text: string): { summary: string; bullets: string[] } {
-  if (!text) return { summary: '', bullets: [] };
-  const parts = text.split(/(?:\.\s+|\n+|;\s+)/).map(s => s.trim()).filter(Boolean);
-  if (parts.length <= 1) return { summary: text, bullets: [] };
-  return { summary: parts[0] + '.', bullets: parts.slice(1).map(b => b.replace(/\.$/, '')) };
-}
-
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('destinations');
   const [nationality, setNationality] = useState(() => localStorage.getItem('co_nationality') || 'ET');
@@ -81,7 +75,7 @@ export default function App() {
   const [visaData, setVisaData] = useState<VisaOverviewData | null>(null);
   const [visaLoading, setVisaLoading] = useState(true);
 
-  const [detailReqs, setDetailReqs] = useState<PolicyResult[]>([]);
+  const [policy, setPolicy] = useState<StructuredPolicy | null>(null);
   const [detailPurpose, setDetailPurpose] = useState('student');
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -121,9 +115,10 @@ export default function App() {
 
   useEffect(() => {
     setDetailLoading(true);
-    getRequirements(nationality, selectedDest, detailPurpose)
-      .then((data) => setDetailReqs(data.requirements))
-      .catch(() => setDetailReqs([]))
+    setPolicy(null);
+    getStructuredPolicy(nationality, selectedDest, detailPurpose)
+      .then((data) => setPolicy(data))
+      .catch(() => setPolicy(null))
       .finally(() => setDetailLoading(false));
   }, [nationality, selectedDest, detailPurpose]);
 
@@ -330,13 +325,13 @@ export default function App() {
                     <div className="px-4 py-2.5">
                       <div className="text-[10px] font-mono text-muted-foreground uppercase">Fee</div>
                       <div className="text-base font-bold tabular-nums">
-                        {detailReqs[0]?.fee_usd ? `$${detailReqs[0].fee_usd}` : 'Varies'}
+                        {policy?.fee || 'Varies'}
                       </div>
                     </div>
                     <div className="px-4 py-2.5">
                       <div className="text-[10px] font-mono text-muted-foreground uppercase">Processing</div>
-                      <div className="text-base font-bold tabular-nums">
-                        {detailReqs[0]?.processing_days ? `${detailReqs[0].processing_days}d` : 'Varies'}
+                      <div className="text-base font-bold">
+                        {policy?.processing_time || 'Varies'}
                       </div>
                     </div>
                     <div className="px-4 py-2.5">
@@ -355,72 +350,7 @@ export default function App() {
                       <h3 className="text-xs font-mono font-semibold text-primary uppercase tracking-wider mb-2">
                         Policy Requirements - {detailPurpose}
                       </h3>
-                      {detailLoading ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
-                          <CircleNotch size={16} className="animate-spin" /> Loading...
-                        </div>
-                      ) : detailReqs.length > 0 ? (
-                        <div className="space-y-3">
-                          {detailReqs.map((req, i) => {
-                            const parsed = parseRequirementText(req.requirement_text);
-                            return (
-                              <div key={i} className="border rounded-lg overflow-hidden">
-                                <div className="grid grid-cols-4 divide-x divide-border bg-card/50 border-b">
-                                  <div className="px-3 py-2 flex items-center gap-1.5">
-                                    <CurrencyDollar size={14} className="text-primary shrink-0" />
-                                    <div>
-                                      <div className="text-[9px] font-mono text-muted-foreground uppercase">Fee</div>
-                                      <div className="text-xs font-bold tabular-nums">{req.fee_usd ? `$${req.fee_usd}` : 'N/A'}</div>
-                                    </div>
-                                  </div>
-                                  <div className="px-3 py-2 flex items-center gap-1.5">
-                                    <Clock size={14} className="text-primary shrink-0" />
-                                    <div>
-                                      <div className="text-[9px] font-mono text-muted-foreground uppercase">Processing</div>
-                                      <div className="text-xs font-bold tabular-nums">{req.processing_days ? `${req.processing_days}d` : 'N/A'}</div>
-                                    </div>
-                                  </div>
-                                  <div className="px-3 py-2 flex items-center gap-1.5">
-                                    <FileText size={14} className="text-primary shrink-0" />
-                                    <div>
-                                      <div className="text-[9px] font-mono text-muted-foreground uppercase">Docs</div>
-                                      <div className="text-xs font-bold truncate max-w-[140px]">{req.documents_needed || 'See below'}</div>
-                                    </div>
-                                  </div>
-                                  <div className="px-3 py-2 flex items-center gap-1.5">
-                                    <LinkIcon size={14} className="text-primary shrink-0" />
-                                    <div>
-                                      <div className="text-[9px] font-mono text-muted-foreground uppercase">Source</div>
-                                      {req.source_url ? (
-                                        <a href={req.source_url} target="_blank" rel="noopener" className="text-xs text-primary hover:underline truncate block max-w-[140px]">
-                                          {req.source_name || 'Official'}
-                                        </a>
-                                      ) : (
-                                        <div className="text-xs text-muted-foreground">{req.source_name || 'N/A'}</div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="px-4 py-3">
-                                  {parsed.summary && <p className="text-sm leading-relaxed">{parsed.summary}</p>}
-                                  {parsed.bullets.length > 0 && (
-                                    <ul className="mt-2 space-y-1">
-                                      {parsed.bullets.map((b, j) => (
-                                        <li key={j} className="text-xs text-muted-foreground flex items-start gap-2">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                                          <span>{b}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground py-2">No data for this route yet.</p>
-                      )}
+                      <PolicyCard policy={policy} loading={detailLoading} />
                     </div>
 
                     {/* Visa types */}

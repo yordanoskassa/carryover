@@ -36,6 +36,30 @@ export function getRequirements(nationality: string, destination: string, purpos
   });
 }
 
+export interface StructuredPolicy {
+  nationality: string;
+  destination: string;
+  purpose: string;
+  found: boolean;
+  ai_structured: boolean;
+  visa_name: string | null;
+  summary: string | null;
+  fee: string | null;
+  processing_time: string | null;
+  key_requirements: string[];
+  documents: string[];
+  steps: string[];
+  source_name: string | null;
+  source_url: string | null;
+}
+
+export function getStructuredPolicy(nationality: string, destination: string, purpose: string) {
+  return request<StructuredPolicy>('/advisor/structured', {
+    method: 'POST',
+    body: JSON.stringify({ nationality, destination, purpose }),
+  });
+}
+
 // ── Inspector ────────────────────────────────────────────────────────────
 
 export interface EvidenceItem {
