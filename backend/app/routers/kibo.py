@@ -16,14 +16,17 @@ answers from live Elastic data.
 import asyncio
 import re
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import AdvisorRequest, InspectorRequest, KiboChatRequest
 from app.routers.advisor import get_requirements
-from app.routers.inspector import evaluate_agency
+from app.routers.inspector import evaluate_agency, scan_agency, ScanAgencyRequest
 from app.services import gemini
 
 router = APIRouter(prefix="/api/kibo", tags=["kibo"])
+
+# A Telegram handle or t.me link in the message means "investigate this agency".
+_HANDLE = re.compile(r"(?:@|t\.me/(?:s/)?)([A-Za-z0-9_]{4,})", re.IGNORECASE)
 
 INSPECTOR_TOOLS = ["inspector.scam_pattern_match", "inspector.identity_reuse", "ES|QL"]
 ADVISOR_TOOLS = ["advisor.policy_lookup", "advisor.visa_policy_search", "ELSER"]
@@ -139,9 +142,76 @@ def _fallback_synthesis(question: str, findings: dict) -> str:
     return " ".join(parts)
 
 
+def _fallback_scan_narration(handle: str, scan: dict) -> str:
+    n = scan["posts_scanned"]
+    phones = scan["phones_found"]
+    title = scan["agency"]["title"]
+    bits = [
+        f"I pulled @{handle} ({title}) — {n} public posts, now indexed to Elasticsearch."
+    ]
+    if phones:
+        bits.append(
+            f"It reuses {len(phones)} phone number(s) across its posts"
+            + (f" ({', '.join(phones[:2])})" if phones else "")
+            + " — Elastic now tracks those for reuse across other agencies."
+        )
+    if scan["verdict"] in ("HIGH", "CRITICAL"):
+        bits.append(f"Risk reads {scan['aggregate_risk']}/100 — see the flagged posts in the panel.")
+    else:
+        bits.append("Nothing screams scam, but the full post-by-post breakdown is in the panel.")
+    return " ".join(bits)
+
+
+async def _scan_flow(req: KiboChatRequest, handle: str) -> dict:
+    """Kibo delegates an agency-handle investigation: scan → index → narrate.
+
+    The rich result rides in a `scan_result` event the UI renders in the
+    dashboard panel; the chat side only gets the handoff + a short analysis.
+    """
+    events: list[dict] = [{
+        "kind": "handoff",
+        "agents": ["inspector", "advisor"],
+        "reason": (
+            f"You gave an agency handle, so Inspector is pulling @{handle}'s public "
+            f"Telegram posts and indexing them to Elastic, while Advisor lines them up "
+            f"against official {req.destination} policy."
+        ),
+        "router": "gemini" if gemini.available() else "heuristic",
+    }]
+
+    try:
+        scan = await scan_agency(ScanAgencyRequest(
+            handle=handle,
+            corridor=f"{req.nationality}->{req.destination}",
+        ))
+    except HTTPException as e:
+        events.append({
+            "kind": "kibo",
+            "content": f"I couldn't scan @{handle} — {e.detail}",
+            "engine": "elastic-fallback",
+        })
+        return {"events": events}
+
+    # Heavy payload → dashboard panel, not the chat
+    events.append({"kind": "scan_result", "data": scan})
+
+    narration = await gemini.narrate_scan(req.question, handle, scan)
+    events.append({
+        "kind": "kibo",
+        "content": narration or _fallback_scan_narration(handle, scan),
+        "engine": "gemini" if narration else "elastic-fallback",
+    })
+    return {"events": events}
+
+
 @router.post("/chat")
 async def kibo_chat(req: KiboChatRequest):
     """Orchestrated chat turn: route → run specialists in parallel → synthesize."""
+
+    # If the user named an agency handle, delegate to the live-scan investigation.
+    handle_match = _HANDLE.search(req.question)
+    if handle_match:
+        return await _scan_flow(req, handle_match.group(1))
 
     plan = await gemini.route(req.question, req.nationality, req.destination, req.purpose)
     engine = "gemini" if plan else "heuristic"

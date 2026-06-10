@@ -120,6 +120,51 @@ async def route(question: str, nationality: str, destination: str, purpose: str)
         return None
 
 
+SCAN_NARRATION_PROMPT = """You are Kibo, a warm, plain-spoken assistant protecting migrants from
+visa fraud. A user asked you to check the agency @{handle}. Your Inspector agent pulled the
+channel's public Telegram posts and indexed them into Elasticsearch, and ES|QL extracted any
+reused phone numbers. Here are the findings (JSON):
+
+{findings}
+
+Write a SHORT chat-side analysis — 2 to 3 sentences, conversational, no markdown, no bullet lists:
+- Say what the agency advertises and how many posts you scanned and indexed to Elastic.
+- Call out the single most notable signal (a reused phone, a risky claim) OR say it looks clean.
+- Tell the user the full post-by-post breakdown is now open in the dashboard panel.
+Do NOT declare it definitively a scam — frame findings as signals the user should weigh."""
+
+
+async def narrate_scan(question: str, handle: str, scan: dict) -> str | None:
+    """Short chat-side narration of an agency scan. None on failure/no key."""
+    if not available():
+        return None
+    try:
+        client = _get_client()
+        slim = {
+            "agency": scan.get("agency"),
+            "posts_scanned": scan.get("posts_scanned"),
+            "posts_indexed": scan.get("posts_indexed"),
+            "aggregate_risk": scan.get("aggregate_risk"),
+            "verdict": scan.get("verdict"),
+            "phones_found": scan.get("phones_found"),
+            "top_posts": [
+                {"risk": p["risk_score"], "verdict": p["verdict"], "text": p["text"][:200]}
+                for p in scan.get("posts", [])[:4]
+            ],
+        }
+        resp = await client.aio.models.generate_content(
+            model=settings.gemini_model,
+            contents=SCAN_NARRATION_PROMPT.format(
+                handle=handle,
+                findings=json.dumps(slim, default=str)[:8000],
+            ),
+        )
+        text = (resp.text or "").strip()
+        return text or None
+    except Exception:
+        return None
+
+
 async def synthesize(
     question: str,
     nationality: str,
