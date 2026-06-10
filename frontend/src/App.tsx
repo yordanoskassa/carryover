@@ -54,6 +54,12 @@ const COUNTRIES = [
 const DESTINATIONS: Record<string, string> = {
   GB: 'United Kingdom', US: 'United States', CA: 'Canada', DE: 'Germany',
   AU: 'Australia', FR: 'France', NL: 'Netherlands', SE: 'Sweden',
+  IE: 'Ireland', NO: 'Norway', FI: 'Finland', CH: 'Switzerland',
+  ES: 'Spain', IT: 'Italy', NZ: 'New Zealand', SG: 'Singapore',
+  JP: 'Japan', KR: 'South Korea', AT: 'Austria', BE: 'Belgium',
+  CZ: 'Czechia', GR: 'Greece', PT: 'Portugal', PL: 'Poland',
+  AE: 'United Arab Emirates', SA: 'Saudi Arabia', QA: 'Qatar',
+  TR: 'Turkey', ZA: 'South Africa',
 };
 
 const PURPOSE_META: Record<string, { icon: typeof GraduationCap; label: string }> = {
