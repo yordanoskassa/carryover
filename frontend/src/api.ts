@@ -60,6 +60,27 @@ export function getStructuredPolicy(nationality: string, destination: string, pu
   });
 }
 
+// ── Elastic data overview ────────────────────────────────────────────────
+
+export interface ElasticIndexInfo {
+  index: string;
+  label: string;
+  description: string;
+  source: string;
+  semantic: boolean;
+  doc_count: number;
+}
+
+export interface ElasticOverview {
+  total_docs: number;
+  indices: ElasticIndexInfo[];
+  structured_breakdown: { firecrawl: number; grounded: number; gemini: number };
+}
+
+export function getElasticOverview() {
+  return request<ElasticOverview>('/elastic/overview');
+}
+
 // ── Inspector ────────────────────────────────────────────────────────────
 
 export interface EvidenceItem {

@@ -25,6 +25,7 @@ import VisaOverview from './components/VisaOverview';
 import Kibo from './components/Kibo';
 import AgencyInvestigation from './components/AgencyInvestigation';
 import PolicyCard from './components/PolicyCard';
+import ElasticData from './components/ElasticData';
 import { getVisaOverview, getStructuredPolicy, getDashboard, getFlaggedAgencies, getFlaggedPhones, type VisaOverviewData, type StructuredPolicy, type ScanAgencyResponse } from './api';
 import { DEST_DATA } from './data/destinations';
 import './index.css';
@@ -62,7 +63,7 @@ const PURPOSE_META: Record<string, { icon: typeof GraduationCap; label: string }
   tourist: { icon: AirplaneTilt, label: 'Tourist' },
 };
 
-type Tab = 'destinations' | 'agency' | 'pathways';
+type Tab = 'destinations' | 'agency' | 'pathways' | 'elastic';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('destinations');
@@ -235,6 +236,7 @@ export default function App() {
                   ['destinations', 'DESTINATIONS'],
                   ['agency', 'BAD AGENCY WATCH'],
                   ['pathways', 'VISA PATHWAYS'],
+                  ['elastic', 'ELASTIC DATA'],
                 ] as const).map(([tab, label]) => (
                   <button
                     key={tab}
@@ -496,6 +498,9 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* ELASTIC DATA */}
+            {activeTab === 'elastic' && <ElasticData />}
 
             {/* VISA PATHWAYS */}
             {activeTab === 'pathways' && (
