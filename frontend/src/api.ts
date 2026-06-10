@@ -139,24 +139,66 @@ export function getFlaggedPhones() {
   return request<{ phones: Record<string, unknown>[] }>('/dashboard/flagged-phones');
 }
 
-// ── Kibo (Chat Agent) ───────────────────────────────────────────────────
+// ── Kibo (Orchestrator Agent) ───────────────────────────────────────────
 
-export interface KiboMessage {
-  role: 'user' | 'kibo';
-  content: string;
+export type KiboAgentId = 'inspector' | 'advisor';
+
+export interface KiboHandoffEvent {
+  kind: 'handoff';
+  agents: KiboAgentId[];
+  reason: string;
+  router: 'gemini' | 'heuristic';
 }
 
-export function chatWithKibo(
+export interface InspectorCardData {
+  risk_score: number;
+  verdict: string;
+  matched_scams: number;
+  contradictions: number;
+  identity_reuse_count: number;
+  evidence_chain: { type: string; description: string; source: string | null; confidence: number }[];
+}
+
+export interface AdvisorCardData {
+  requirements: {
+    requirement_text: string;
+    fee_usd: number | null;
+    processing_days: number | null;
+    source_url: string;
+    source_name: string;
+    last_updated: string | null;
+  }[];
+  total_found: number;
+  purpose: string;
+}
+
+export interface KiboAgentCardEvent {
+  kind: 'agent_card';
+  agent: KiboAgentId;
+  tools: string[];
+  error: string | null;
+  data: InspectorCardData | AdvisorCardData | null;
+}
+
+export interface KiboReplyEvent {
+  kind: 'kibo';
+  content: string;
+  engine: 'gemini' | 'elastic-fallback';
+}
+
+export type KiboEvent = KiboHandoffEvent | KiboAgentCardEvent | KiboReplyEvent;
+
+export function kiboChat(
   question: string,
   context: { nationality: string; destination: string; purpose: string },
 ) {
-  return request<{ output?: string; reply?: string; error?: string }>('/advisor/ask', {
+  return request<{ events: KiboEvent[] }>('/kibo/chat', {
     method: 'POST',
     body: JSON.stringify({
+      question,
       nationality: context.nationality,
       destination: context.destination,
       purpose: context.purpose,
-      question,
     }),
   });
 }
