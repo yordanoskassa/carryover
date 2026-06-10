@@ -47,3 +47,6 @@ backend/app/data/seed/*.json
 
 # Stray scaffold
 elastipath/
+
+# env backups
+.env.*

@@ -112,7 +112,7 @@ ELASTIPATH_TOOLS = [
     },
     {
         "id": "advisor.visa_policy_search",
-        "type": "index",
+        "type": "index_search",
         "description": (
             "Semantic search over official visa policy documents. Use for natural language "
             "questions about visa requirements, eligibility, or procedures. Returns cited "
@@ -120,19 +120,13 @@ ELASTIPATH_TOOLS = [
         ),
         "tags": ["advisor", "visa", "semantic"],
         "configuration": {
-            "index_pattern": "visa-policies",
-            "row_limit": 10,
-            "custom_instructions": (
-                "Always return requirement_text, source_url, source_name, last_updated, "
-                "fee_usd, and processing_days. Prioritize results matching the user's "
-                "nationality and destination."
-            ),
+            "pattern": "visa-policies",
         },
     },
     # --- Inspector tools ---
     {
         "id": "inspector.scam_pattern_match",
-        "type": "index",
+        "type": "index_search",
         "description": (
             "Semantic similarity search against known scam posts and fraud patterns. "
             "Paste agency post text as the query. Returns matching known scams with "
@@ -141,13 +135,7 @@ ELASTIPATH_TOOLS = [
         ),
         "tags": ["inspector", "scam", "semantic"],
         "configuration": {
-            "index_pattern": "known-scams",
-            "row_limit": 10,
-            "custom_instructions": (
-                "Return post_text, scam_category, confidence, source, date_reported, "
-                "and corridor fields. Rank by relevance score. Any semantic match "
-                "above 0.7 should be flagged as HIGH risk."
-            ),
+            "pattern": "known-scams",
         },
     },
     {
@@ -251,6 +239,7 @@ ELASTIPATH_TOOLS = [
                 "| SORT total_reports DESC "
                 "| LIMIT 20"
             ),
+            "params": {},
         },
     },
     {
