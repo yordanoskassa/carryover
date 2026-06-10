@@ -313,6 +313,14 @@ async def structured_requirements(req: AdvisorRequest):
     Falls back to the raw structured policy fields when Gemini is unavailable.
     """
     route_id = f"{req.nationality}-{req.destination}-{req.purpose}"
+
+    # Firecrawl-curated policies (keyed ALL-<dest>-<purpose>) are authoritative —
+    # they carry the exact fees/funds the Open Crawler couldn't reach inline.
+    curated = _load_structured(f"ALL-{req.destination}-{req.purpose}")
+    if curated:
+        return {**curated, "nationality": req.nationality,
+                "destination": req.destination, "purpose": req.purpose}
+
     stored = _load_structured(route_id)
     if stored:
         return stored
