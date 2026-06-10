@@ -109,11 +109,21 @@ async def get_visa_overview(nationality: str = "ET"):
     Combines policy count from visa-policies and scam volume from
     known-scams to produce a per-destination openness indicator.
     """
-    destinations = ["GB", "US", "CA", "DE", "AU", "FR", "NL", "SE"]
+    # Baseline destinations always shown; any destination with crawled policy
+    # data is added dynamically below.
+    baseline = {"GB", "US", "CA", "DE", "AU", "FR", "NL", "SE"}
     dest_names = {
         "GB": "United Kingdom", "US": "United States", "CA": "Canada",
         "DE": "Germany", "AU": "Australia", "FR": "France",
-        "NL": "Netherlands", "SE": "Sweden",
+        "NL": "Netherlands", "SE": "Sweden", "IE": "Ireland",
+        "DK": "Denmark", "NO": "Norway", "FI": "Finland",
+        "AT": "Austria", "CH": "Switzerland", "GR": "Greece",
+        "PT": "Portugal", "ES": "Spain", "PL": "Poland",
+        "CZ": "Czechia", "BE": "Belgium", "IT": "Italy",
+        "TR": "Turkey", "RU": "Russia", "AE": "United Arab Emirates",
+        "SA": "Saudi Arabia", "QA": "Qatar", "JP": "Japan",
+        "SG": "Singapore", "KR": "South Korea", "CN": "China",
+        "TH": "Thailand", "NZ": "New Zealand", "ZA": "South Africa",
     }
 
     # Count policies per destination (more documented policies = more accessible)
@@ -195,7 +205,9 @@ async def get_visa_overview(nationality: str = "ET"):
     except Exception:
         pass
 
-    # Build restriction entries
+    # Build restriction entries — every destination with indexed policy data,
+    # plus the baseline set so the list is never empty before a crawl.
+    destinations = sorted(baseline | {d for d in policy_counts if d in dest_names})
     max_policies = max(policy_counts.values()) if policy_counts else 1
     max_scams = max(scam_counts.values()) if scam_counts else 1
 
