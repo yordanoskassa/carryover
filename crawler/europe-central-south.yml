@@ -1,0 +1,123 @@
+# Elastic Open Crawler — Austria, Switzerland, Greece, Portugal, Spain, Poland, Czechia, Belgium
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  # Austria — official migration portal
+  - url: https://www.migration.gv.at
+    seed_urls:
+      - https://www.migration.gv.at/en/types-of-immigration/
+      - https://www.migration.gv.at/en/types-of-immigration/permanent-immigration/
+      - https://www.migration.gv.at/en/types-of-immigration/temporary-residence/
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Switzerland — State Secretariat for Migration
+  - url: https://www.sem.admin.ch
+    seed_urls:
+      - https://www.sem.admin.ch/sem/en/home/themen/einreise.html
+      - https://www.sem.admin.ch/sem/en/home/themen/aufenthalt.html
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /sem/en
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Greece — Ministry of Migration and Asylum
+  - url: https://migration.gov.gr
+    seed_urls:
+      - https://migration.gov.gr/en/
+      - https://migration.gov.gr/en/vizes/
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Portugal — MFA visa portal
+  - url: https://vistos.mne.gov.pt
+    seed_urls:
+      - https://vistos.mne.gov.pt/en/
+      - https://vistos.mne.gov.pt/en/national-visas
+      - https://vistos.mne.gov.pt/en/schengen-visas
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Spain — Ministry of Foreign Affairs
+  - url: https://www.exteriores.gob.es
+    seed_urls:
+      - https://www.exteriores.gob.es/en/ServiciosAlCiudadano/Paginas/Visados.aspx
+    crawl_rules:
+      - policy: allow
+        type: contains
+        pattern: visado
+      - policy: allow
+        type: contains
+        pattern: visa
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Poland — Office for Foreigners
+  - url: https://www.gov.pl
+    seed_urls:
+      - https://www.gov.pl/web/udsc-en
+      - https://www.gov.pl/web/udsc-en/temporary-stay
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /web/udsc-en
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Czechia — Ministry of Foreign Affairs
+  - url: https://mzv.gov.cz
+    seed_urls:
+      - https://mzv.gov.cz/jnp/en/information_for_aliens/index.html
+      - https://mzv.gov.cz/jnp/en/information_for_aliens/short_stay_visa/index.html
+      - https://mzv.gov.cz/jnp/en/information_for_aliens/long_stay_visa/index.html
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /jnp/en/information_for_aliens
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Belgium — Immigration Office
+  - url: https://dofi.ibz.be
+    seed_urls:
+      - https://dofi.ibz.be/en
+      - https://dofi.ibz.be/en/themes/third-country-nationals
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /

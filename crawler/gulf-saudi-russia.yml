@@ -1,0 +1,69 @@
+# Elastic Open Crawler — Saudi Arabia, Qatar, Russia
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  # Saudi Arabia — official tourism authority visa pages
+  - url: https://www.visitsaudi.com
+    seed_urls:
+      - https://www.visitsaudi.com/en/plan-your-trip/visa-information
+      - https://www.visitsaudi.com/en/travel-regulations
+    crawl_rules:
+      - policy: allow
+        type: contains
+        pattern: visa
+      - policy: allow
+        type: contains
+        pattern: travel-regulations
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Saudi Arabia — Ministry of Foreign Affairs
+  - url: https://www.mofa.gov.sa
+    seed_urls:
+      - https://www.mofa.gov.sa/en/eservices/Pages/default.aspx
+    crawl_rules:
+      - policy: allow
+        type: contains
+        pattern: visa
+      - policy: allow
+        type: contains
+        pattern: eservices
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Qatar — official visitor portal
+  - url: https://visitqatar.com
+    seed_urls:
+      - https://visitqatar.com/intl-en/practical-info/visas
+    crawl_rules:
+      - policy: allow
+        type: contains
+        pattern: visa
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Russia — unified e-visa portal
+  - url: https://evisa.kdmid.ru
+    seed_urls:
+      - https://evisa.kdmid.ru/en-US
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en-US
+      - policy: deny
+        type: begins
+        pattern: /

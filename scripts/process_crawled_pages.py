@@ -98,7 +98,58 @@ NATIONALITIES = ["ET", "NG", "IN", "PK", "BD", "KE", "SO", "ER", "GH", "PH",
                  "EG", "MA", "LK", "NP", "AF", "IQ", "SY", "YE", "SD", "CM"]
 
 
-def classify_page(url: str, url_host: str) -> dict | None:
+# ── Generic host → destination mapping ─────────────────────────────────────
+# Fallback for hosts without explicit URL_RULES: destination comes from the
+# host, purpose is detected from keywords in the URL and page title.
+HOST_MAP = {
+    # Europe — Nordics + Ireland
+    "irishimmigration.ie":     ("IE", "Irish Immigration Service"),
+    "migrationsverket.se":     ("SE", "Swedish Migration Agency"),
+    "nyidanmark.dk":           ("DK", "New to Denmark (SIRI)"),
+    "udi.no":                  ("NO", "Norwegian Directorate of Immigration"),
+    "migri.fi":                ("FI", "Finnish Immigration Service"),
+    # Europe — Central / South
+    "migration.gv.at":         ("AT", "Austrian Migration Portal"),
+    "sem.admin.ch":            ("CH", "Swiss State Secretariat for Migration"),
+    "migration.gov.gr":        ("GR", "Greek Ministry of Migration"),
+    "vistos.mne.gov.pt":       ("PT", "Portugal MFA Visa Portal"),
+    "exteriores.gob.es":       ("ES", "Spain Ministry of Foreign Affairs"),
+    "gov.pl":                  ("PL", "Poland Office for Foreigners"),
+    "mzv.gov.cz":              ("CZ", "Czech Ministry of Foreign Affairs"),
+    "dofi.ibz.be":             ("BE", "Belgium Immigration Office"),
+    "vistoperitalia.esteri.it": ("IT", "Italy MFA Visa Portal"),
+    # Asia-Pacific
+    "mofa.go.jp":              ("JP", "Japan Ministry of Foreign Affairs"),
+    "ica.gov.sg":              ("SG", "Singapore ICA"),
+    "immigration.go.kr":       ("KR", "Korea Immigration Service"),
+    "china-embassy.gov.cn":    ("CN", "Chinese Embassy Consular Affairs"),
+    "immigration.govt.nz":     ("NZ", "Immigration New Zealand"),
+    "consular.mfa.go.th":      ("TH", "Thailand MFA Consular Department"),
+    # Gulf + Russia + Africa
+    "visitsaudi.com":          ("SA", "Visit Saudi (official)"),
+    "mofa.gov.sa":             ("SA", "Saudi Ministry of Foreign Affairs"),
+    "visitqatar.com":          ("QA", "Visit Qatar (official)"),
+    "evisa.kdmid.ru":          ("RU", "Russia e-Visa Portal"),
+    "dha.gov.za":              ("ZA", "South Africa Home Affairs"),
+}
+
+PURPOSE_KEYWORDS = [
+    ("student", ("student", "study", "studies", "studying", "education", "school")),
+    ("work",    ("work", "employ", "skilled", "labour", "labor", "job", "business", "talent", "residence")),
+    ("family",  ("family", "spouse", "partner", "join", "reunif", "marriage", "dependent")),
+    ("tourist", ("visit", "tourist", "tourism", "schengen", "short-stay", "short_stay", "holiday", "travel")),
+]
+
+
+def detect_purpose(text: str) -> str:
+    text = text.lower()
+    for purpose, keywords in PURPOSE_KEYWORDS:
+        if any(kw in text for kw in keywords):
+            return purpose
+    return "tourist"
+
+
+def classify_page(url: str, url_host: str, title: str = "") -> dict | None:
     """Match a crawled page URL to destination/purpose metadata."""
     url_lower = url.lower()
     host = (url_host or "").lower()
@@ -110,6 +161,15 @@ def classify_page(url: str, url_host: str) -> dict | None:
                 "purpose": rule["purpose"],
                 "source_name": rule["source_name"],
             }
+
+    for host_key, (dest, source_name) in HOST_MAP.items():
+        if host_key in host:
+            return {
+                "destination": dest,
+                "purpose": detect_purpose(f"{url_lower} {title}"),
+                "source_name": source_name,
+            }
+
     return None
 
 
@@ -173,7 +233,7 @@ def process_pages():
             skipped += 1
             continue
 
-        meta = classify_page(url, url_host)
+        meta = classify_page(url, url_host, title)
         if not meta:
             skipped += 1
             continue

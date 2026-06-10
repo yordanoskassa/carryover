@@ -1,0 +1,98 @@
+# Elastic Open Crawler — Japan, Singapore, South Korea, China, New Zealand, Thailand
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  # Japan — Ministry of Foreign Affairs
+  - url: https://www.mofa.go.jp
+    seed_urls:
+      - https://www.mofa.go.jp/j_info/visit/visa/index.html
+      - https://www.mofa.go.jp/j_info/visit/visa/long/index.html
+      - https://www.mofa.go.jp/j_info/visit/visa/short/novisa.html
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /j_info/visit/visa
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Singapore — Immigration and Checkpoints Authority
+  - url: https://www.ica.gov.sg
+    seed_urls:
+      - https://www.ica.gov.sg/enter-transit-depart/entering-singapore/visa_requirements
+      - https://www.ica.gov.sg/reside/STP
+      - https://www.ica.gov.sg/reside/LTVP
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /enter-transit-depart
+      - policy: allow
+        type: begins
+        pattern: /reside
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # South Korea — Korea Immigration Service
+  - url: https://www.immigration.go.kr
+    seed_urls:
+      - https://www.immigration.go.kr/immigration_eng/index.do
+      - https://www.immigration.go.kr/immigration_eng/1822/subview.do
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /immigration_eng
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # China — Embassy consular/visa pages (English)
+  - url: http://us.china-embassy.gov.cn
+    seed_urls:
+      - http://us.china-embassy.gov.cn/eng/lsfw/zj/qz2021/
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /eng/lsfw
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # New Zealand — Immigration New Zealand
+  - url: https://www.immigration.govt.nz
+    seed_urls:
+      - https://www.immigration.govt.nz/new-zealand-visas
+      - https://www.immigration.govt.nz/new-zealand-visas/options/study
+      - https://www.immigration.govt.nz/new-zealand-visas/options/work
+      - https://www.immigration.govt.nz/new-zealand-visas/options/visit
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /new-zealand-visas
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Thailand — MFA Consular Department
+  - url: https://consular.mfa.go.th
+    seed_urls:
+      - https://consular.mfa.go.th/en
+      - https://consular.mfa.go.th/en/page/visa-information
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /

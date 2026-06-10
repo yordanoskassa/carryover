@@ -1,0 +1,90 @@
+# Elastic Open Crawler — Ireland, Sweden, Denmark, Norway, Finland
+output_sink: elasticsearch
+output_index: crawled-visa-pages
+
+elasticsearch:
+  host: <%= ENV['ES_HOST'] %>
+  port: 443
+  api_key: <%= ENV['ES_API_KEY'] %>
+  pipeline_enabled: false
+  ssl_ca_certs: false
+
+max_crawl_depth: 2
+purge_crawl_enabled: false
+
+domains:
+  # Ireland — Immigration Service Delivery
+  - url: https://www.irishimmigration.ie
+    seed_urls:
+      - https://www.irishimmigration.ie/coming-to-visit-ireland/
+      - https://www.irishimmigration.ie/coming-to-study-in-ireland/
+      - https://www.irishimmigration.ie/coming-to-work-in-ireland/
+      - https://www.irishimmigration.ie/coming-to-join-family-in-ireland/
+      - https://www.irishimmigration.ie/visas/visa-types/
+    crawl_rules:
+      - policy: allow
+        type: contains
+        pattern: visa
+      - policy: allow
+        type: begins
+        pattern: /coming-to
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Sweden — Migrationsverket
+  - url: https://www.migrationsverket.se
+    seed_urls:
+      - https://www.migrationsverket.se/en.html
+      - https://www.migrationsverket.se/en/you-want-to-apply.html
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Denmark — New to Denmark (SIRI)
+  - url: https://www.nyidanmark.dk
+    seed_urls:
+      - https://www.nyidanmark.dk/en-GB
+      - https://www.nyidanmark.dk/en-GB/You-want-to-apply
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en-GB
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Norway — UDI
+  - url: https://www.udi.no
+    seed_urls:
+      - https://www.udi.no/en/want-to-apply/
+      - https://www.udi.no/en/want-to-apply/visit-and-holiday/
+      - https://www.udi.no/en/want-to-apply/studies/
+      - https://www.udi.no/en/want-to-apply/work-immigration/
+      - https://www.udi.no/en/want-to-apply/family-immigration/
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /
+
+  # Finland — Migri
+  - url: https://migri.fi
+    seed_urls:
+      - https://migri.fi/en/home
+      - https://migri.fi/en/work-in-finland
+      - https://migri.fi/en/studying-in-finland
+      - https://migri.fi/en/moving-to-finland-to-be-with-a-family-member
+    crawl_rules:
+      - policy: allow
+        type: begins
+        pattern: /en
+      - policy: deny
+        type: begins
+        pattern: /
