@@ -120,6 +120,67 @@ async def route(question: str, nationality: str, destination: str, purpose: str)
         return None
 
 
+GROUNDED_PROMPT = """Using Google Search, find the OFFICIAL, current {purpose} visa or residence
+permit for a citizen of {nationality} travelling to {destination}. Prefer official government
+immigration sources.
+
+Return ONLY a JSON object (no markdown, no prose) with these keys:
+- visa_name (string)
+- summary (string, plain English for a non-native speaker)
+- fee (string with currency, or null)
+- processing_time (string, or null)
+- key_requirements (array of short strings)
+- documents (array of short strings)
+- steps (array of short strings, application steps in order)
+- source_name (string — the official body)
+- source_url (string — the official page)
+
+Use only facts you can find. If a field is unknown, use null (or an empty array). Do not invent figures."""
+
+
+def _extract_json(text: str) -> dict | None:
+    """Pull a JSON object out of model text (handles ```json fences / prose)."""
+    if not text:
+        return None
+    t = text.strip()
+    if "```" in t:
+        t = t.split("```")[1] if t.split("```")[1:] else t
+        if t.startswith("json"):
+            t = t[4:]
+    start, end = t.find("{"), t.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    try:
+        return json.loads(t[start:end + 1])
+    except Exception:
+        return None
+
+
+async def structure_policy_grounded(nationality: str, destination: str, purpose: str) -> dict | None:
+    """Gap-filler: Gemini grounded on Google Search produces a structured policy. None on failure."""
+    if not available():
+        return None
+    try:
+        from google.genai import types
+        client = _get_client()
+        resp = await client.aio.models.generate_content(
+            model=settings.gemini_model,
+            contents=GROUNDED_PROMPT.format(
+                nationality=nationality, destination=destination, purpose=purpose,
+            ),
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=0.2,
+            ),
+        )
+        data = _extract_json(resp.text or "")
+        if data and data.get("visa_name"):
+            return data
+        return None
+    except Exception:
+        return None
+
+
 SCAN_NARRATION_PROMPT = """You are Kibo, a warm, plain-spoken assistant protecting migrants from
 visa fraud. A user asked you to check the agency @{handle}. Your Inspector agent pulled the
 channel's public Telegram posts and indexed them into Elasticsearch, and ES|QL extracted any

@@ -46,6 +46,28 @@ def _ensure_structured_index() -> None:
         pass
 
 
+def _shape_grounded(req, g: dict) -> dict:
+    """Shape a Gemini-grounded policy into the structured response dict."""
+    return {
+        "nationality": req.nationality, "destination": req.destination, "purpose": req.purpose,
+        "found": True, "ai_structured": True, "grounded": True,
+        "visa_name": g.get("visa_name"),
+        "summary": g.get("summary"),
+        "fee": g.get("fee"),
+        "processing_time": g.get("processing_time"),
+        "key_requirements": (g.get("key_requirements") or [])[:6],
+        "documents": (g.get("documents") or [])[:8],
+        "steps": (g.get("steps") or [])[:6],
+        "source_name": g.get("source_name") or "Gemini + Google Search",
+        "source_url": g.get("source_url"),
+    }
+
+
+def _is_weak(result: dict) -> bool:
+    """A result worth trying to improve with grounded search."""
+    return not result.get("fee") and len(result.get("key_requirements") or []) < 3
+
+
 def _load_structured(route_id: str) -> dict | None:
     if route_id in _STRUCTURE_MEMO:
         return _STRUCTURE_MEMO[route_id]
@@ -146,31 +168,24 @@ async def get_requirements(req: AdvisorRequest):
         semantic_result = {"hits": {"hits": []}}
 
     # 3. Crawled government pages — text search on real embassy/immigration sites
-    dest_labels = {
-        "GB": "gov.uk", "US": "travel.state.gov", "CA": "canada.ca",
-        "DE": "auswaertiges-amt.de", "FR": "france-visas.gouv.fr",
-        "NL": "ind.nl", "AE": "icp.gov.ae", "TR": "mfa.gov.tr",
-        "AU": "immi.homeaffairs.gov.au",
-    }
-    dest_host = dest_labels.get(req.destination, "")
-    try:
-        crawl_result = es.search(
-            index="crawled-visa-pages",
-            body={
-                "size": 5,
-                "query": {
-                    "bool": {
-                        "must": [
-                            {"match": {"body": query_text}},
-                        ],
-                        "filter": [
-                            {"term": {"url_host": dest_host}},
-                        ] if dest_host else [],
-                    }
+    # Only search crawled pages for the destination's own government host —
+    # without a host we'd pull cross-country noise, so skip instead.
+    dest_host = DEST_HOST.get(req.destination, "")
+    if dest_host:
+        try:
+            crawl_result = es.search(
+                index="crawled-visa-pages",
+                body={
+                    "size": 5,
+                    "query": {"bool": {
+                        "must": [{"match": {"body": query_text}}],
+                        "filter": [{"term": {"url_host": dest_host}}],
+                    }},
                 },
-            },
-        )
-    except Exception:
+            )
+        except Exception:
+            crawl_result = {"hits": {"hits": []}}
+    else:
         crawl_result = {"hits": {"hits": []}}
 
     # Merge results — deduplicate on requirement_text, not source_url
@@ -329,7 +344,13 @@ async def structured_requirements(req: AdvisorRequest):
     reqs = base.requirements
 
     if not reqs:
-        # Don't persist empties — the route may get crawled data later.
+        # No data in Elastic for this route — let Gemini fill it via Google Search
+        # grounding, then write the result back so the index keeps growing.
+        g = await gemini.structure_policy_grounded(req.nationality, req.destination, req.purpose)
+        if g:
+            result = _shape_grounded(req, g)
+            _store_structured(route_id, result)
+            return result
         return {
             "nationality": req.nationality, "destination": req.destination, "purpose": req.purpose,
             "found": False, "ai_structured": False,
@@ -391,6 +412,13 @@ async def structured_requirements(req: AdvisorRequest):
             "source_name": source.source_name,
             "source_url": source.source_url,
         }
+
+    # If the crawl-derived result is thin (no fee, few requirements), let grounded
+    # Gemini fill the gap — and write the richer version back to Elastic.
+    if _is_weak(result):
+        g = await gemini.structure_policy_grounded(req.nationality, req.destination, req.purpose)
+        if g and (g.get("fee") or len(g.get("key_requirements") or []) >= 3):
+            result = _shape_grounded(req, g)
 
     _store_structured(route_id, result)
     return result
