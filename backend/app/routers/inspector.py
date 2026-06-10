@@ -39,57 +39,68 @@ async def evaluate_agency(req: InspectorRequest):
     Runs three checks: semantic match, policy contradiction, identity reuse.
     """
     evidence = []
-    risk_score = 0
+    # Each detector contributes an independent "probability of fraud"; we combine
+    # them with a probabilistic OR (1 - ∏(1-p)) so the score is graded and spreads
+    # across 0-100 instead of jumping in fixed chunks.
+    probs: list[float] = []
 
-    # ── 0. Fraud language signals ─────────────────────────────────────────
-    # The post's own claims anchor the score. A legitimate agency post (or an
-    # official channel) trips none of these and stays LOW even if ELSER finds a
-    # topically-similar scam in the corpus.
+    # ── 0. Fraud language signals (the primary discriminator) ─────────────
+    # Severity-weighted: a guaranteed-approval / cash-upfront claim is a far
+    # stronger signal than a vague "special connections" line.
+    SIGNAL_WEIGHT = {
+        "guaranteed approval": 0.45,
+        "no interview / no documents": 0.42,
+        "unrealistic speed": 0.35,
+        "upfront cash / informal payment": 0.48,
+        "special connections": 0.25,
+    }
     signals = detect_fraud_signals(req.post_text)
     for label in signals:
+        w = SIGNAL_WEIGHT.get(label, 0.30)
+        probs.append(w)
         evidence.append(EvidenceItem(
             type="FRAUD_SIGNAL",
             description=f"Post contains a known fraud red flag: {label}.",
             source="claim analysis",
-            confidence=0.9,
+            confidence=round(0.55 + w / 2, 2),
         ))
-    risk_score += min(len(signals) * 20, 55)
 
-    # ── 1. Semantic match against known scams ─────────────────────────────
-    # ELSER returns a score for almost everything, so a relative-to-top
-    # threshold gates what counts as a real match.
-    scam_matches = search_semantic(
-        index="known-scams",
-        query=req.post_text,
-        size=5,
+    # ── 1. Semantic match against known scams (ELSER) ─────────────────────
+    # On this corpus ELSER similarity sits ~0.68-0.83 for almost any visa text,
+    # so it's a weak standalone discriminator: we show the match as evidence but
+    # only let it nudge the score relative to a baseline, and halve its weight
+    # when the post itself shows no fraud language.
+    scam_matches = search_semantic(index="known-scams", query=req.post_text, size=5)
+    hits = sorted(
+        scam_matches.get("hits", {}).get("hits", []),
+        key=lambda h: h.get("_score", 0), reverse=True,
     )
-    hits = scam_matches.get("hits", {}).get("hits", [])
-    max_score = max((h.get("_score", 0) for h in hits), default=0)
-    threshold = max(max_score * 0.85, 8.0)  # ELSER text_expansion scale
-    matched_scams = 0
-    for hit in hits:
-        score = hit.get("_score", 0)
-        if score < threshold:
+    top_score = hits[0].get("_score", 0) if hits else 0
+    BASELINE = 0.72
+    matched_scams = sum(1 for h in hits if h.get("_score", 0) >= BASELINE)
+    for h in hits[:2]:
+        s = h.get("_score", 0)
+        if s < BASELINE:
             continue
-        src = hit["_source"]
-        matched_scams += 1
+        src = h["_source"]
         evidence.append(EvidenceItem(
             type="SEMANTIC_MATCH",
             description=(
-                f"Closely matches a known scam (score {score:.1f}): "
-                f"'{src.get('post_text', '')[:120]}...'"
+                f"Resembles a known scam (similarity {s:.2f}): "
+                f"'{src.get('post_text', '')[:110]}...'"
             ),
             source=src.get("source", "known-scams index"),
-            confidence=min(score / max(max_score, 1.0), 1.0) if max_score else 0,
+            confidence=round(s, 2),
         ))
-    # A semantic match only adds risk when the post itself looks suspicious —
-    # this stops benign posts from being scored up by corpus similarity alone.
-    if matched_scams >= 1 and signals:
-        risk_score += 25 if matched_scams >= 3 else 15
+    if top_score > BASELINE:
+        p_sem = min((top_score - BASELINE) / 0.18, 1.0) * 0.28
+        p_sem *= 1.0 if signals else 0.5
+        if p_sem > 0.02:
+            probs.append(p_sem)
 
     # ── 2. Policy contradiction check ─────────────────────────────────────
-    # Only a fraud-signal post can "contradict" policy; we then surface the
-    # official requirement as the counter-evidence the user should trust.
+    # Only a claim-making post can "contradict" policy; we surface the official
+    # requirement as the counter-evidence the user should trust.
     contradictions = 0
     if req.corridor and signals:
         parts = req.corridor.split("->")
@@ -104,6 +115,7 @@ async def evaluate_agency(req: InspectorRequest):
             for hit in policy_results.get("hits", {}).get("hits", []):
                 src = hit["_source"]
                 contradictions += 1
+                probs.append(0.30)
                 evidence.append(EvidenceItem(
                     type="POLICY_CONTRADICTION",
                     description=(
@@ -111,9 +123,8 @@ async def evaluate_agency(req: InspectorRequest):
                         f"'{src.get('requirement_text', '')[:150]}...'"
                     ),
                     source=src.get("source_url", ""),
-                    confidence=0.8,
+                    confidence=0.75,
                 ))
-                risk_score += 20
 
     # ── 3. Identity reuse check ───────────────────────────────────────────
     identity_reuse_count = 0
@@ -132,7 +143,7 @@ async def evaluate_agency(req: InspectorRequest):
             )
             identity_reuse_count = len(reuse_result.get("values", []))
             if identity_reuse_count > 0:
-                risk_score += 15
+                probs.append(min(identity_reuse_count * 0.18, 0.5))
                 evidence.append(EvidenceItem(
                     type="IDENTITY_REUSE",
                     description=(
@@ -144,8 +155,11 @@ async def evaluate_agency(req: InspectorRequest):
         except Exception:
             pass
 
-    # ── Score and verdict ─────────────────────────────────────────────────
-    risk_score = min(risk_score, 100)
+    # ── Combine: probabilistic OR → a graded 0-100 score ──────────────────
+    survive = 1.0
+    for p in probs:
+        survive *= (1.0 - max(0.0, min(p, 0.95)))
+    risk_score = round((1.0 - survive) * 100)
 
     if risk_score >= 80:
         verdict = "CRITICAL"
