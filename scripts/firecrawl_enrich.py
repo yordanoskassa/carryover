@@ -62,6 +62,64 @@ POLICIES = [
         "source_name": "Irish Immigration Service",
         "source_url": "https://www.irishimmigration.ie/coming-to-study-in-ireland/",
     },
+    {
+        "destination": "NO", "purpose": "student",
+        "visa_name": "Study Permit (Norway)",
+        "summary": ("A residence permit for non-EU/EEA students admitted full-time to a Norwegian "
+                    "university or university college. You must prove you can support yourself and "
+                    "have somewhere to live."),
+        "fee": "NOK 5,400",
+        "processing_time": "up to 12 months",
+        "key_requirements": [
+            "Admission to an approved university or university college",
+            "Full-time study",
+            "Proof of at least NOK 170,368 per year in available funds",
+            "Confirmed accommodation in Norway",
+        ],
+        "documents": [
+            "Valid passport",
+            "Confirmation of admission to an approved institution",
+            "Proof of sufficient funds (bank statements, scholarship letters)",
+            "Health insurance documentation",
+            "Proof of accommodation in Norway",
+        ],
+        "steps": [
+            "Get admitted to an approved Norwegian institution",
+            "Register an application in the UDI application portal and pay the fee",
+            "Book and attend an appointment to hand in documents",
+            "Wait for the decision (can take up to 12 months)",
+        ],
+        "source_name": "Norwegian Directorate of Immigration (UDI)",
+        "source_url": "https://www.udi.no/en/want-to-apply/studies/",
+    },
+    {
+        "destination": "FI", "purpose": "student",
+        "visa_name": "Residence Permit for Studies (Finland)",
+        "summary": ("A residence permit for non-EU students accepted to a Finnish educational "
+                    "institution. You must show sufficient funds and hold health insurance."),
+        "fee": "€600 (online) / €750 (paper)",
+        "processing_time": "studies applications are high-priority; varies by case",
+        "key_requirements": [
+            "Acceptance at a Finnish educational institution",
+            "At least €9,600 for one year (or €800 per month) in available funds",
+            "Valid health insurance",
+        ],
+        "documents": [
+            "Valid passport",
+            "Passport photo",
+            "Certificate of acceptance from the educational institution",
+            "Proof of financial resources",
+            "Certificate of insurance",
+        ],
+        "steps": [
+            "Get accepted to a Finnish educational institution",
+            "Fill in the studies application in Enter Finland and pay the fee",
+            "Visit a Finnish mission or service point to prove your identity",
+            "Wait for the decision",
+        ],
+        "source_name": "Finnish Immigration Service (Migri)",
+        "source_url": "https://migri.fi/en/studying-in-finland",
+    },
 ]
 
 
