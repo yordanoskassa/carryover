@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import AdvisorRequest, AdvisorResponse, PolicyResult
 from app.services.elastic import es, search_semantic, search_esql
@@ -5,9 +7,71 @@ from app.services import agent_builder, gemini
 
 router = APIRouter(prefix="/api/advisor", tags=["advisor"])
 
-# Structured-policy results are deterministic per route; cache to avoid
-# re-running Gemini on every country click.
-_STRUCTURE_CACHE: dict[tuple[str, str, str], dict] = {}
+# Gemini-structured policies are written back to Elasticsearch as a persistent
+# knowledge layer — so they survive restarts and become a queryable artifact
+# (this is the "agent insights → Elastic memory" pattern). A tiny in-process
+# memo sits in front of it to keep rapid re-clicks snappy.
+STRUCTURED_INDEX = "structured-policies"
+_STRUCTURE_MEMO: dict[str, dict] = {}
+_structured_index_ready = False
+
+
+def _ensure_structured_index() -> None:
+    global _structured_index_ready
+    if _structured_index_ready:
+        return
+    try:
+        if not es.indices.exists(index=STRUCTURED_INDEX):
+            es.indices.create(index=STRUCTURED_INDEX, mappings={"properties": {
+                "route": {"type": "keyword"},
+                "nationality": {"type": "keyword"},
+                "destination": {"type": "keyword"},
+                "purpose": {"type": "keyword"},
+                "visa_name": {"type": "text"},
+                "summary": {"type": "text"},
+                "fee": {"type": "keyword"},
+                "processing_time": {"type": "keyword"},
+                "key_requirements": {"type": "text"},
+                "documents": {"type": "text"},
+                "steps": {"type": "text"},
+                "source_name": {"type": "keyword"},
+                "source_url": {"type": "keyword"},
+                "ai_structured": {"type": "boolean"},
+                "found": {"type": "boolean"},
+                "generated_at": {"type": "date"},
+            }})
+        _structured_index_ready = True
+    except Exception:
+        pass
+
+
+def _load_structured(route_id: str) -> dict | None:
+    if route_id in _STRUCTURE_MEMO:
+        return _STRUCTURE_MEMO[route_id]
+    _ensure_structured_index()
+    try:
+        doc = es.get(index=STRUCTURED_INDEX, id=route_id)
+        if doc.get("found"):
+            src = doc["_source"]
+            _STRUCTURE_MEMO[route_id] = src
+            return src
+    except Exception:
+        pass
+    return None
+
+
+def _store_structured(route_id: str, result: dict) -> None:
+    _STRUCTURE_MEMO[route_id] = result
+    _ensure_structured_index()
+    try:
+        es.index(
+            index=STRUCTURED_INDEX,
+            id=route_id,
+            document={**result, "route": route_id,
+                      "generated_at": datetime.now(timezone.utc).isoformat()},
+        )
+    except Exception:
+        pass
 
 # Crawled pages share boilerplate prefixes (cookie banners, nav). Strip a known
 # lead so dedup and display don't choke on it.
@@ -188,22 +252,23 @@ async def structured_requirements(req: AdvisorRequest):
 
     Falls back to the raw structured policy fields when Gemini is unavailable.
     """
-    cache_key = (req.nationality, req.destination, req.purpose)
-    if cache_key in _STRUCTURE_CACHE:
-        return _STRUCTURE_CACHE[cache_key]
+    route_id = f"{req.nationality}-{req.destination}-{req.purpose}"
+    stored = _load_structured(route_id)
+    if stored:
+        return stored
 
     base = await get_requirements(req)
     reqs = base.requirements
 
     if not reqs:
-        result = {
+        # Don't persist empties — the route may get crawled data later.
+        return {
             "nationality": req.nationality, "destination": req.destination, "purpose": req.purpose,
             "found": False, "ai_structured": False,
             "visa_name": None, "summary": None, "fee": None, "processing_time": None,
             "key_requirements": [], "documents": [], "steps": [],
             "source_name": None, "source_url": None,
         }
-        return result
 
     raw = _clean_policy_text("\n\n".join(r.requirement_text for r in reqs[:6]))
     fee_hint = next((r.fee_usd for r in reqs if r.fee_usd), None)
@@ -246,7 +311,7 @@ async def structured_requirements(req: AdvisorRequest):
             "source_url": source.source_url,
         }
 
-    _STRUCTURE_CACHE[cache_key] = result
+    _store_structured(route_id, result)
     return result
 
 
