@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # Google / Gemini
     google_project_id: str = ""
     gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash"
 
     # App
     app_env: str = "development"

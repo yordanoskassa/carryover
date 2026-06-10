@@ -78,6 +78,15 @@ class DashboardResponse(BaseModel):
     recent_policy_changes: list[dict]
 
 
+# ── Kibo (orchestrator chat) ──────────────────────────────────────────────
+
+class KiboChatRequest(BaseModel):
+    question: str
+    nationality: str  # ISO code: ET, NG, IN
+    destination: str  # ISO code: GB, US, DE
+    purpose: str = "student"
+
+
 # ── Scam Report (memory write-back) ──────────────────────────────────────
 
 class ScamReport(BaseModel):
