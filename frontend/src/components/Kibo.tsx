@@ -2,12 +2,14 @@ import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 're
 import {
   CircleNotch, Sparkle, Detective, FileText,
   ShareNetwork, Warning, Phone, FileX, ArrowRight, ChartBar,
+  Megaphone, PaperPlaneTilt, CheckCircle, Buildings, CaretDown,
 } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import {
-  kiboChat,
+  kiboChat, fileReport,
   type KiboEvent, type KiboAgentId,
   type InspectorCardData, type AdvisorCardData, type ScanAgencyResponse,
+  type KiboActionPromptEvent, type ReporterResult,
 } from '../api';
 
 interface KiboProps {
@@ -63,7 +65,129 @@ function verdictClasses(verdict: string) {
   return 'bg-emerald-500/15 text-emerald-400';
 }
 
+// Reporter is the action agent — distinct amber accent so it reads as "do",
+// not "describe". It isn't a KiboAgentId (no specialist card), so its meta
+// lives on its own.
+const REPORTER_META = {
+  name: 'Reporter',
+  text: 'text-amber-400',
+  bg: 'bg-amber-500/10',
+  border: 'border-amber-500/20',
+  dot: 'bg-amber-400',
+};
+
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function ReporterPill({ working }: { working: boolean }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full border ${REPORTER_META.bg} ${REPORTER_META.border} ${REPORTER_META.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${REPORTER_META.dot} ${working ? 'animate-pulse' : 'opacity-60'}`} />
+      {REPORTER_META.name}
+    </span>
+  );
+}
+
+// The one-click action card. Holds its own state: propose → filing → result.
+function ReporterAction({ event }: { event: KiboActionPromptEvent }) {
+  const [status, setStatus] = useState<'idle' | 'filing' | 'done' | 'error'>('idle');
+  const [result, setResult] = useState<ReporterResult | null>(null);
+  const [showLetter, setShowLetter] = useState(false);
+
+  const run = async () => {
+    setStatus('filing');
+    try {
+      const res = await fileReport(event.payload);
+      setResult(res);
+      setStatus('done');
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-lg p-2.5 border ${REPORTER_META.border} ${REPORTER_META.bg}`}
+    >
+      <div className="flex items-center justify-between mb-1.5">
+        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${REPORTER_META.text}`}>
+          <Megaphone size={14} weight="bold" /> Reporter
+        </span>
+        <span className="text-[9px] text-muted-foreground font-mono">action agent</span>
+      </div>
+
+      {status !== 'done' && (
+        <>
+          <p className="text-[11px] leading-snug text-foreground/90">{event.description}</p>
+          <button
+            onClick={run}
+            disabled={status === 'filing'}
+            className={`mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold
+              bg-amber-500 text-black hover:bg-amber-400 disabled:opacity-60 transition-colors`}
+          >
+            {status === 'filing' ? (
+              <><CircleNotch size={13} className="animate-spin" /> Filing report & sending complaint…</>
+            ) : (
+              <><PaperPlaneTilt size={13} weight="bold" /> {event.label}</>
+            )}
+          </button>
+          {status === 'error' && (
+            <p className="mt-1.5 text-[10px] text-red-400">Couldn't file right now — the backend may be unreachable.</p>
+          )}
+          <div className="mt-2 pt-1.5 border-t border-amber-500/15 text-[9px] text-muted-foreground font-mono truncate">
+            {event.tools.join(' · ')}
+          </div>
+        </>
+      )}
+
+      {status === 'done' && result && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+          <p className="text-[11px] leading-snug text-foreground/90">{result.summary}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {result.filed && (
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                <CheckCircle size={11} weight="fill" /> Warning filed to Elastic
+              </span>
+            )}
+            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full ${result.delivery.delivered ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
+              {result.delivery.delivered ? <CheckCircle size={11} weight="fill" /> : <PaperPlaneTilt size={11} />}
+              {result.delivery.delivered ? 'Complaint sent' : 'Complaint drafted'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <Buildings size={12} className={REPORTER_META.text} />
+            <span className="truncate">To: {result.complaint.to_authority}</span>
+          </div>
+
+          <button
+            onClick={() => setShowLetter((s) => !s)}
+            className="inline-flex items-center gap-1 text-[10px] text-amber-400 hover:underline"
+          >
+            <CaretDown size={11} className={`transition-transform ${showLetter ? 'rotate-180' : ''}`} />
+            {showLetter ? 'Hide complaint' : 'View complaint'}
+          </button>
+          {showLetter && (
+            <div className="rounded-md bg-background/60 border border-amber-500/15 p-2 space-y-1">
+              <p className="text-[10px] font-semibold text-foreground/90">{result.complaint.subject}</p>
+              <p className="text-[10px] leading-relaxed text-muted-foreground whitespace-pre-wrap">{result.complaint.body}</p>
+              {result.complaint.authority_portal && (
+                <a
+                  href={result.complaint.authority_portal}
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-amber-400 hover:underline"
+                >
+                  File directly with {result.complaint.to_authority} <ArrowRight size={10} />
+                </a>
+              )}
+            </div>
+          )}
+          <p className="text-[9px] text-muted-foreground">{result.delivery.detail}</p>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
 
 function AgentPill({ agent, working }: { agent: KiboAgentId; working: boolean }) {
   const meta = AGENT_META[agent];
@@ -256,6 +380,7 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
         <div className="flex items-center gap-1 shrink-0">
           <AgentPill agent="inspector" working={workingAgents.includes('inspector')} />
           <AgentPill agent="advisor" working={workingAgents.includes('advisor')} />
+          <ReporterPill working={false} />
         </div>
       </div>
 
@@ -300,6 +425,9 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
             return item.agent === 'inspector'
               ? <InspectorCard key={i} data={item.data as InspectorCardData} tools={item.tools} />
               : <AdvisorCard key={i} data={item.data as AdvisorCardData} tools={item.tools} />;
+          }
+          if (item.kind === 'action_prompt') {
+            return <ReporterAction key={i} event={item} />;
           }
           if (item.kind === 'kibo') {
             return (

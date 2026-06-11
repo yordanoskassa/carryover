@@ -272,7 +272,48 @@ export interface KiboScanEvent {
   data: ScanAgencyResponse;
 }
 
-export type KiboEvent = KiboHandoffEvent | KiboAgentCardEvent | KiboReplyEvent | KiboScanEvent;
+// Reporter — the action agent. Kibo proposes a one-click report; the payload
+// is posted as-is to /reporter/file when the user confirms.
+export interface ReporterPayload {
+  post_text: string;
+  agency_name: string | null;
+  handle: string | null;
+  phone: string | null;
+  nationality: string;
+  destination: string;
+  corridor: string;
+  risk_score: number;
+  verdict: string;
+  evidence: string[];
+}
+
+export interface KiboActionPromptEvent {
+  kind: 'action_prompt';
+  agent: 'reporter';
+  tools: string[];
+  label: string;
+  description: string;
+  payload: ReporterPayload;
+}
+
+export type KiboEvent =
+  | KiboHandoffEvent | KiboAgentCardEvent | KiboReplyEvent
+  | KiboScanEvent | KiboActionPromptEvent;
+
+export interface ReporterResult {
+  filed: boolean;
+  document_id: string | null;
+  complaint: { to_authority: string; authority_portal: string; subject: string; body: string };
+  delivery: { channel: string; delivered: boolean; detail: string; message_id: string | null };
+  summary: string;
+}
+
+export function fileReport(payload: ReporterPayload & { reply_to?: string }) {
+  return request<ReporterResult>('/reporter/file', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
 
 export function kiboChat(
   question: string,

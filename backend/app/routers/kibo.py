@@ -30,6 +30,45 @@ _HANDLE = re.compile(r"(?:@|t\.me/(?:s/)?)([A-Za-z0-9_]{4,})", re.IGNORECASE)
 
 INSPECTOR_TOOLS = ["inspector.scam_pattern_match", "inspector.identity_reuse", "ES|QL"]
 ADVISOR_TOOLS = ["advisor.policy_lookup", "advisor.visa_policy_search", "ELSER"]
+REPORTER_TOOLS = ["reporter.community_writeback", "reporter.file_complaint", "Resend"]
+
+# Verdicts that warrant proposing the one-click report-and-complaint action.
+_ACTIONABLE = {"HIGH", "CRITICAL"}
+
+
+def _reporter_event(
+    *, req: KiboChatRequest, post_text: str, verdict: str, risk_score: int,
+    evidence: list[str], agency_name=None, handle=None, phone=None,
+) -> dict:
+    """A one-click action card: Kibo proposes filing a warning + complaint.
+
+    Nothing is sent until the user taps it — the payload is posted as-is to
+    /api/reporter/file.
+    """
+    who = agency_name or (f"@{handle}" if handle else "this offer")
+    return {
+        "kind": "action_prompt",
+        "agent": "reporter",
+        "tools": REPORTER_TOOLS,
+        "label": "Report this agency",
+        "description": (
+            f"This scored {risk_score}/100 ({verdict}). I can file a community "
+            f"warning to Elastic and send a formal complaint about {who} to the "
+            f"right authority — one tap, you stay in control."
+        ),
+        "payload": {
+            "post_text": post_text,
+            "agency_name": agency_name,
+            "handle": handle,
+            "phone": phone,
+            "nationality": req.nationality,
+            "destination": req.destination,
+            "corridor": f"{req.nationality}->{req.destination}",
+            "risk_score": risk_score,
+            "verdict": verdict,
+            "evidence": evidence[:5],
+        },
+    }
 
 _SCAM_HINTS = re.compile(
     r"scam|legit|fraud|fake|guarantee|promise|agent|agency|tiktok|telegram|"
@@ -195,6 +234,21 @@ async def _scan_flow(req: KiboChatRequest, handle: str) -> dict:
         "content": narration or _fallback_scan_narration(handle, scan),
         "engine": "gemini" if narration else "elastic-fallback",
     })
+
+    # Confirmed scam → propose the one-click report + complaint action,
+    # pre-filled from the riskiest post and the channel's identifiers.
+    if scan["verdict"] in _ACTIONABLE:
+        top = (scan.get("posts") or [{}])[0]
+        events.append(_reporter_event(
+            req=req,
+            post_text=top.get("text") or req.question,
+            verdict=scan["verdict"],
+            risk_score=scan["aggregate_risk"],
+            evidence=[e["description"] for e in top.get("evidence", [])],
+            agency_name=scan["agency"]["title"],
+            handle=scan["agency"]["handle"],
+            phone=(scan.get("phones_found") or [None])[0],
+        ))
     return {"events": events}
 
 
@@ -265,5 +319,18 @@ async def kibo_chat(req: KiboChatRequest):
         "content": synthesis or _fallback_synthesis(req.question, findings),
         "engine": "gemini" if synthesis else "elastic-fallback",
     })
+
+    # Confirmed scam → propose the one-click report + complaint action.
+    insp = findings.get("inspector")
+    if insp and insp["verdict"] in _ACTIONABLE:
+        events.append(_reporter_event(
+            req=req,
+            post_text=plan.get("post_text") or req.question,
+            verdict=insp["verdict"],
+            risk_score=insp["risk_score"],
+            evidence=[e["description"] for e in insp["evidence_chain"]],
+            agency_name=plan.get("agency_name"),
+            phone=plan.get("identifier"),
+        ))
 
     return {"events": events}

@@ -103,3 +103,42 @@ class ScamReportResponse(BaseModel):
     indexed: bool
     document_id: str
     message: str
+
+
+# ── Reporter (real outbound action) ──────────────────────────────────────
+
+class ReporterFileRequest(BaseModel):
+    """One-click action on a confirmed scam: file warning + draft & send complaint."""
+    post_text: str
+    agency_name: str | None = None
+    handle: str | None = None
+    phone: str | None = None
+    nationality: str | None = None
+    destination: str | None = None  # ISO code → picks the reporting authority
+    corridor: str | None = None
+    risk_score: int = 0
+    verdict: str = "HIGH"
+    evidence: list[str] = []  # short evidence-chain descriptions
+    reply_to: str | None = None  # optional user email for the authority to reach
+
+
+class ComplaintDraft(BaseModel):
+    to_authority: str
+    authority_portal: str
+    subject: str
+    body: str
+
+
+class DeliveryStatus(BaseModel):
+    channel: str  # "email" | "draft"
+    delivered: bool
+    detail: str
+    message_id: str | None = None
+
+
+class ReporterFileResponse(BaseModel):
+    filed: bool  # indexed into known-scams (community warning)
+    document_id: str | None = None
+    complaint: ComplaintDraft
+    delivery: DeliveryStatus
+    summary: str  # one-line plain-language recap for Kibo to show

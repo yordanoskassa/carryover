@@ -226,6 +226,61 @@ async def narrate_scan(question: str, handle: str, scan: dict) -> str | None:
         return None
 
 
+COMPLAINT_PROMPT = """You are drafting a formal fraud complaint on behalf of a migrant who was
+targeted by a fraudulent visa agency. The complaint will be filed with {authority}.
+
+Write a clear, factual complaint letter body (no subject line, no placeholders like
+[your name]). Rules:
+- Professional, calm, first-person from the person reporting.
+- State plainly that this appears to be a visa/immigration scam and why.
+- Cite the concrete evidence given below as the basis.
+- Include the agency's identifiers (name / handle / phone) if provided.
+- 150-220 words. No markdown. End with a request to investigate.
+
+CASE FACTS:
+- Reporting authority: {authority}
+- Corridor: {corridor}
+- Risk score: {risk}/100 ({verdict})
+- Agency name: {agency}
+- Handle: {handle}
+- Phone: {phone}
+- The suspicious offer (verbatim): "{post}"
+- Evidence the automated check found:
+{evidence}"""
+
+
+async def draft_complaint(
+    authority: str,
+    corridor: str,
+    risk: int,
+    verdict: str,
+    agency: str,
+    handle: str,
+    phone: str,
+    post: str,
+    evidence: list[str],
+) -> str | None:
+    """Draft a formal complaint letter body. None on failure/no key → caller templates."""
+    if not available():
+        return None
+    try:
+        client = _get_client()
+        ev = "\n".join(f"- {e}" for e in evidence) or "- (automated risk signals)"
+        resp = await client.aio.models.generate_content(
+            model=settings.gemini_model,
+            contents=COMPLAINT_PROMPT.format(
+                authority=authority, corridor=corridor or "unspecified",
+                risk=risk, verdict=verdict,
+                agency=agency or "unknown", handle=handle or "n/a", phone=phone or "n/a",
+                post=(post or "")[:1200], evidence=ev[:2000],
+            ),
+        )
+        text = (resp.text or "").strip()
+        return text or None
+    except Exception:
+        return None
+
+
 POLICY_STRUCTURE_SCHEMA = {
     "type": "object",
     "properties": {

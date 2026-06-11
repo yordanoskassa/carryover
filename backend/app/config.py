@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     app_env: str = "development"
     cors_origins: str = "http://localhost:5173"
 
+    # Reporter — real outbound complaint channel (Resend email API).
+    # All optional: with no key set, the Reporter still files the Elastic
+    # warning and returns the drafted complaint (delivery reports "draft").
+    resend_api_key: str = ""
+    report_from_email: str = "Carryover Reporter <onboarding@resend.dev>"
+    report_to_email: str = ""  # community/reports inbox that receives complaints
+
     model_config = {"env_file": str(_ENV_FILE), "env_file_encoding": "utf-8"}
 
     @property
