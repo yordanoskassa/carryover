@@ -29,7 +29,7 @@ export default function Advisor({ nationality, destination }: AdvisorProps) {
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Visa Requirements · {nationality}→{destination}
         </h3>
-        <div className="flex rounded-md border border-border overflow-hidden text-[11px] font-medium">
+        <div className="flex rounded-md border border-border overflow-hidden text-xs font-medium">
           {PURPOSES.map((p) => (
             <button
               key={p}

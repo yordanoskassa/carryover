@@ -80,7 +80,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function ReporterPill({ working }: { working: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full border ${REPORTER_META.bg} ${REPORTER_META.border} ${REPORTER_META.text}`}>
+    <span className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border ${REPORTER_META.bg} ${REPORTER_META.border} ${REPORTER_META.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${REPORTER_META.dot} ${working ? 'animate-pulse' : 'opacity-60'}`} />
       {REPORTER_META.name}
     </span>
@@ -111,19 +111,19 @@ function ReporterAction({ event }: { event: KiboActionPromptEvent }) {
       className={`rounded-lg p-2.5 border ${REPORTER_META.border} ${REPORTER_META.bg}`}
     >
       <div className="flex items-center justify-between mb-1.5">
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${REPORTER_META.text}`}>
+        <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${REPORTER_META.text}`}>
           <Megaphone size={14} weight="bold" /> Reporter
         </span>
-        <span className="text-[9px] text-muted-foreground font-mono">action agent</span>
+        <span className="text-[10px] text-muted-foreground font-mono">action agent</span>
       </div>
 
       {status !== 'done' && (
         <>
-          <p className="text-[11px] leading-snug text-foreground/90">{event.description}</p>
+          <p className="text-xs leading-snug text-foreground/90">{event.description}</p>
           <button
             onClick={run}
             disabled={status === 'filing'}
-            className={`mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold
+            className={`mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold
               bg-amber-500 text-black hover:bg-amber-400 disabled:opacity-60 transition-colors`}
           >
             {status === 'filing' ? (
@@ -133,9 +133,9 @@ function ReporterAction({ event }: { event: KiboActionPromptEvent }) {
             )}
           </button>
           {status === 'error' && (
-            <p className="mt-1.5 text-[10px] text-red-400">Couldn't file right now — the backend may be unreachable.</p>
+            <p className="mt-1.5 text-[11px] text-red-400">Couldn't file right now — the backend may be unreachable.</p>
           )}
-          <div className="mt-2 pt-1.5 border-t border-amber-500/15 text-[9px] text-muted-foreground font-mono truncate">
+          <div className="mt-2 pt-1.5 border-t border-amber-500/15 text-[10px] text-muted-foreground font-mono truncate">
             {event.tools.join(' · ')}
           </div>
         </>
@@ -143,46 +143,46 @@ function ReporterAction({ event }: { event: KiboActionPromptEvent }) {
 
       {status === 'done' && result && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
-          <p className="text-[11px] leading-snug text-foreground/90">{result.summary}</p>
+          <p className="text-xs leading-snug text-foreground/90">{result.summary}</p>
           <div className="flex flex-wrap gap-1.5">
             {result.filed && (
-              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
                 <CheckCircle size={11} weight="fill" /> Warning filed to Elastic
               </span>
             )}
-            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full ${result.delivery.delivered ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
+            <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ${result.delivery.delivered ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
               {result.delivery.delivered ? <CheckCircle size={11} weight="fill" /> : <PaperPlaneTilt size={11} />}
               {result.delivery.delivered ? 'Complaint sent' : 'Complaint drafted'}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Buildings size={12} className={REPORTER_META.text} />
             <span className="truncate">To: {result.complaint.to_authority}</span>
           </div>
 
           <button
             onClick={() => setShowLetter((s) => !s)}
-            className="inline-flex items-center gap-1 text-[10px] text-amber-400 hover:underline"
+            className="inline-flex items-center gap-1 text-[11px] text-amber-400 hover:underline"
           >
             <CaretDown size={11} className={`transition-transform ${showLetter ? 'rotate-180' : ''}`} />
             {showLetter ? 'Hide complaint' : 'View complaint'}
           </button>
           {showLetter && (
             <div className="rounded-md bg-background/60 border border-amber-500/15 p-2 space-y-1">
-              <p className="text-[10px] font-semibold text-foreground/90">{result.complaint.subject}</p>
-              <p className="text-[10px] leading-relaxed text-muted-foreground whitespace-pre-wrap">{result.complaint.body}</p>
+              <p className="text-[11px] font-semibold text-foreground/90">{result.complaint.subject}</p>
+              <p className="text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap">{result.complaint.body}</p>
               {result.complaint.authority_portal && (
                 <a
                   href={result.complaint.authority_portal}
                   target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] text-amber-400 hover:underline"
+                  className="inline-flex items-center gap-1 text-[11px] text-amber-400 hover:underline"
                 >
                   File directly with {result.complaint.to_authority} <ArrowRight size={10} />
                 </a>
               )}
             </div>
           )}
-          <p className="text-[9px] text-muted-foreground">{result.delivery.detail}</p>
+          <p className="text-[10px] text-muted-foreground">{result.delivery.detail}</p>
         </motion.div>
       )}
     </motion.div>
@@ -192,7 +192,7 @@ function ReporterAction({ event }: { event: KiboActionPromptEvent }) {
 function AgentPill({ agent, working }: { agent: KiboAgentId; working: boolean }) {
   const meta = AGENT_META[agent];
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full border ${meta.bg} ${meta.border} ${meta.text}`}>
+    <span className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border ${meta.bg} ${meta.border} ${meta.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${meta.dot} ${working ? 'animate-pulse' : 'opacity-60'}`} />
       {meta.name}
     </span>
@@ -204,7 +204,7 @@ function HandoffRow({ agents, reason }: { agents: KiboAgentId[]; reason: string 
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-start gap-2 pl-2 py-1 border-l-2 border-primary/50 text-[11px] text-muted-foreground"
+      className="flex items-start gap-2 pl-2 py-1 border-l-2 border-primary/50 text-xs text-muted-foreground"
     >
       <ShareNetwork size={13} className="text-primary mt-0.5 shrink-0" />
       <span>
@@ -215,7 +215,7 @@ function HandoffRow({ agents, reason }: { agents: KiboAgentId[]; reason: string 
             {i < agents.length - 1 ? ' and ' : ''}
           </span>
         ))}
-        {reason ? <span className="block text-[10px] opacity-70 mt-0.5">{reason}</span> : null}
+        {reason ? <span className="block text-[11px] opacity-70 mt-0.5">{reason}</span> : null}
       </span>
     </motion.div>
   );
@@ -230,10 +230,10 @@ function InspectorCard({ data, tools }: { data: InspectorCardData; tools: string
       className="bg-card border rounded-lg p-2.5"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${meta.text}`}>
+        <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${meta.text}`}>
           <meta.Icon size={14} weight="bold" /> Inspector
         </span>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums ${verdictClasses(data.verdict)}`}>
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums ${verdictClasses(data.verdict)}`}>
           Risk {data.risk_score}/100 · {data.verdict}
         </span>
       </div>
@@ -241,17 +241,17 @@ function InspectorCard({ data, tools }: { data: InspectorCardData; tools: string
         {data.evidence_chain.slice(0, 3).map((e, i) => {
           const Icon = EVIDENCE_ICONS[e.type] ?? Warning;
           return (
-            <div key={i} className="flex items-start gap-1.5 text-[11px] leading-snug text-foreground/90">
+            <div key={i} className="flex items-start gap-1.5 text-xs leading-snug text-foreground/90">
               <Icon size={13} className={`${meta.text} mt-0.5 shrink-0`} />
               <span>{e.description}</span>
             </div>
           );
         })}
         {data.evidence_chain.length === 0 && (
-          <p className="text-[11px] text-muted-foreground">No fraud signals matched in the scam database.</p>
+          <p className="text-xs text-muted-foreground">No fraud signals matched in the scam database.</p>
         )}
       </div>
-      <div className="mt-2 pt-1.5 border-t text-[9px] text-muted-foreground font-mono truncate">
+      <div className="mt-2 pt-1.5 border-t text-[10px] text-muted-foreground font-mono truncate">
         {tools.join(' · ')}
       </div>
     </motion.div>
@@ -267,20 +267,20 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
       className="bg-card border rounded-lg p-2.5"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${meta.text}`}>
+        <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${meta.text}`}>
           <meta.Icon size={14} weight="bold" /> Advisor
         </span>
         {data.source_name && (
-          <span className="text-[9px] text-muted-foreground truncate max-w-[45%]">
+          <span className="text-[10px] text-muted-foreground truncate max-w-[45%]">
             {data.source_name} · official source
           </span>
         )}
       </div>
       {data.visa_name ? (
         <>
-          <p className="text-[11px] font-semibold text-foreground">{data.visa_name}</p>
+          <p className="text-xs font-semibold text-foreground">{data.visa_name}</p>
           {(data.fee || data.processing_time) && (
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               {data.fee && <>Fee {data.fee}</>}
               {data.fee && data.processing_time && ' · '}
               {data.processing_time && <>{data.processing_time}</>}
@@ -289,7 +289,7 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
           {data.requirements.length > 0 && (
             <ul className="mt-1.5 space-y-1">
               {data.requirements.map((r, i) => (
-                <li key={i} className="text-[11px] leading-snug text-foreground/90 flex items-start gap-1.5">
+                <li key={i} className="text-xs leading-snug text-foreground/90 flex items-start gap-1.5">
                   <span className="text-emerald-400 mt-0.5">✓</span><span>{r}</span>
                 </li>
               ))}
@@ -297,9 +297,9 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
           )}
         </>
       ) : (
-        <p className="text-[11px] text-muted-foreground">No official policy indexed for this route yet.</p>
+        <p className="text-xs text-muted-foreground">No official policy indexed for this route yet.</p>
       )}
-      <div className="mt-2 pt-1.5 border-t text-[9px] text-muted-foreground font-mono truncate">
+      <div className="mt-2 pt-1.5 border-t text-[10px] text-muted-foreground font-mono truncate">
         {tools.join(' · ')}
       </div>
     </motion.div>
@@ -374,7 +374,7 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
           </div>
           <div className="truncate">
             <span className="text-sm font-bold">Kibo</span>
-            <span className="text-[10px] text-muted-foreground ml-1.5 font-mono">ORCHESTRATOR</span>
+            <span className="text-[11px] text-muted-foreground ml-1.5 font-mono">ORCHESTRATOR</span>
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -405,7 +405,7 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
                 key={i}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-1.5 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-md px-2.5 py-1.5"
+                className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 rounded-md px-2.5 py-1.5"
               >
                 <ChartBar size={13} weight="bold" />
                 <span className="font-medium truncate">{item.title}</span>
@@ -416,7 +416,7 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
           if (item.kind === 'agent_card') {
             if (item.error || !item.data) {
               return (
-                <div key={i} className="bg-card border rounded-lg p-2.5 text-[11px] text-muted-foreground">
+                <div key={i} className="bg-card border rounded-lg p-2.5 text-xs text-muted-foreground">
                   <span className={`font-bold ${AGENT_META[item.agent].text}`}>{AGENT_META[item.agent].name}</span>
                   {' '}— {item.error ?? 'No data returned.'}
                 </div>
@@ -438,7 +438,7 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
                 <div className="max-w-[88%] rounded-lg px-3 py-2 text-xs leading-relaxed bg-muted text-foreground">
                   {item.content}
                   {item.engine === 'gemini' && (
-                    <span className="block text-[9px] text-muted-foreground font-mono mt-1">synthesized by Gemini</span>
+                    <span className="block text-[10px] text-muted-foreground font-mono mt-1">synthesized by Gemini</span>
                   )}
                 </div>
               </div>
@@ -448,7 +448,7 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
         })}
         {loading && workingAgents.length > 0 && (
           <div className="flex justify-start">
-            <div className="bg-muted rounded-lg px-3 py-2 text-[11px] text-muted-foreground flex items-center gap-1.5">
+            <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground flex items-center gap-1.5">
               <CircleNotch size={12} className="animate-spin" />
               {workingAgents.map((a) => AGENT_META[a].name).join(' and ')} working
               <ArrowRight size={10} className="opacity-50" />
@@ -458,7 +458,7 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
         )}
         {loading && workingAgents.length === 0 && (
           <div className="flex justify-start">
-            <div className="bg-muted rounded-lg px-3 py-2 text-[11px] text-muted-foreground flex items-center gap-1.5">
+            <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground flex items-center gap-1.5">
               <CircleNotch size={12} className="animate-spin" /> Kibo is routing...
             </div>
           </div>

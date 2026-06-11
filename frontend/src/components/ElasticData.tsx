@@ -35,7 +35,7 @@ export default function ElasticData() {
             <div className="text-xs text-muted-foreground mt-1">documents indexed in Elasticsearch</div>
           </div>
         </div>
-        <div className="text-right text-[11px] text-muted-foreground font-mono">
+        <div className="text-right text-xs text-muted-foreground font-mono">
           <div>{data.indices.length} indices</div>
           <div>{data.indices.filter((i) => i.semantic).length} ELSER-backed</div>
         </div>
@@ -56,13 +56,13 @@ export default function ElasticData() {
                 <Stack size={14} className="text-primary shrink-0" />
                 <span className="text-sm font-semibold truncate">{idx.label}</span>
                 {idx.semantic && (
-                  <span className="text-[9px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">ELSER</span>
+                  <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">ELSER</span>
                 )}
               </div>
               <span className="text-base font-bold tabular-nums shrink-0">{idx.doc_count.toLocaleString()}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground leading-snug">{idx.description}</p>
-            <p className="text-[10px] font-mono text-muted-foreground/70 mt-1.5 truncate">
+            <p className="text-xs text-muted-foreground leading-snug">{idx.description}</p>
+            <p className="text-[11px] font-mono text-muted-foreground/70 mt-1.5 truncate">
               {idx.index} · {idx.source}
             </p>
           </motion.div>
@@ -71,7 +71,7 @@ export default function ElasticData() {
 
       {/* How structured policies were produced */}
       <div className="border rounded-lg p-3">
-        <h4 className="text-[10px] font-mono font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
+        <h4 className="text-[11px] font-mono font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
           <Sparkle size={11} weight="fill" className="text-primary" /> Structured policies — by source
         </h4>
         <div className="grid grid-cols-3 gap-2">
@@ -82,8 +82,8 @@ export default function ElasticData() {
           ].map((s) => (
             <div key={s.label} className="bg-muted rounded-md p-2 text-center">
               <div className="text-lg font-bold tabular-nums">{s.value}</div>
-              <div className="text-[10px] font-medium">{s.label}</div>
-              <div className="text-[9px] text-muted-foreground">{s.hint}</div>
+              <div className="text-[11px] font-medium">{s.label}</div>
+              <div className="text-[10px] text-muted-foreground">{s.hint}</div>
             </div>
           ))}
         </div>

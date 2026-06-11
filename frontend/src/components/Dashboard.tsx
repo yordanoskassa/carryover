@@ -96,7 +96,7 @@ export default function Dashboard({ onStats, refreshKey = 0 }: { onStats?: (stat
       <div className="grid grid-cols-2 gap-3">
         <div className="border rounded-lg p-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Reports by Corridor</span>
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Reports by Corridor</span>
             <Button onClick={fetchAll} variant="ghost" size="sm" className="h-5 w-5 p-0">
               <ArrowsClockwise size={10} weight="bold" />
             </Button>
@@ -120,7 +120,7 @@ export default function Dashboard({ onStats, refreshKey = 0 }: { onStats?: (stat
         </div>
 
         <div className="border rounded-lg p-3">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Report Trend</span>
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Report Trend</span>
           {areaData.length > 0 ? (
             <ResponsiveContainer width="100%" height={130}>
               <AreaChart data={areaData}>
@@ -145,11 +145,11 @@ export default function Dashboard({ onStats, refreshKey = 0 }: { onStats?: (stat
       {/* Tables row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="border rounded-lg p-3">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Flagged Agencies</span>
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Flagged Agencies</span>
           <div className="overflow-x-auto mt-1">
             <table className="w-full">
               <thead>
-                <tr className="text-muted-foreground text-[10px]">
+                <tr className="text-muted-foreground text-[11px]">
                   <th className="text-left py-1 font-medium">Agency</th>
                   <th className="text-right py-1 font-medium">Rpts</th>
                   <th className="text-right py-1 font-medium">Conf</th>
@@ -173,11 +173,11 @@ export default function Dashboard({ onStats, refreshKey = 0 }: { onStats?: (stat
         </div>
 
         <div className="border rounded-lg p-3">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Shared Phones</span>
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shared Phones</span>
           <div className="overflow-x-auto mt-1">
             <table className="w-full">
               <thead>
-                <tr className="text-muted-foreground text-[10px]">
+                <tr className="text-muted-foreground text-[11px]">
                   <th className="text-left py-1 font-medium">Phone</th>
                   <th className="text-right py-1 font-medium">Agencies</th>
                   <th className="text-right py-1 font-medium">Posts</th>

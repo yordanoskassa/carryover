@@ -55,7 +55,7 @@ function RiskGauge({ score, verdict }: { score: number; verdict: string }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xl font-bold tabular-nums">{score}</span>
-        <span className="text-[10px] font-semibold" style={{ color }}>
+        <span className="text-[11px] font-semibold" style={{ color }}>
           {verdict}
         </span>
       </div>
@@ -72,10 +72,10 @@ function EvidenceCard({ item, index }: { item: EvidenceItem; index: number }) {
       className="border rounded-lg p-2.5"
     >
       <div className="flex items-center justify-between mb-1">
-        <Badge variant={getBadgeVariant(item.type)} className="text-[10px] px-1.5 py-0">
+        <Badge variant={getBadgeVariant(item.type)} className="text-[11px] px-1.5 py-0">
           {EVIDENCE_LABELS[item.type] || item.type}
         </Badge>
-        <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
+        <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
           {(item.confidence * 100).toFixed(0)}%
         </span>
       </div>
@@ -151,7 +151,7 @@ export default function Inspector() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agency Inspector</h3>
-        <div className="flex rounded-md border border-border overflow-hidden text-[10px] font-medium">
+        <div className="flex rounded-md border border-border overflow-hidden text-[11px] font-medium">
           <button
             onClick={() => { setMode('post'); setError(null); }}
             className={`px-2 py-1 transition-colors ${mode === 'post' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50'}`}
@@ -264,19 +264,19 @@ export default function Inspector() {
                     {scan.aggregate_risk} {scan.verdict}
                   </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground font-mono mt-1">
+                <p className="text-[11px] text-muted-foreground font-mono mt-1">
                   @{scan.agency.handle} · {scan.posts_scanned} posts scanned · {scan.posts_indexed} indexed to Elastic
                 </p>
                 {scan.phones_found.length > 0 && (
                   <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                     <Phone size={11} className="text-amber-400" />
                     {scan.phones_found.map((p) => (
-                      <span key={p} className="text-[10px] font-mono bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded">{p}</span>
+                      <span key={p} className="text-[11px] font-mono bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded">{p}</span>
                     ))}
                   </div>
                 )}
               </div>
-              <h4 className="text-[10px] font-semibold text-muted-foreground uppercase">Posts by risk</h4>
+              <h4 className="text-[11px] font-semibold text-muted-foreground uppercase">Posts by risk</h4>
               {scan.posts.map((p, i) => (
                 <motion.div
                   key={i}
@@ -286,14 +286,14 @@ export default function Inspector() {
                   className="border rounded-lg p-2"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`text-[10px] font-bold tabular-nums ${verdictColor(p.verdict)}`}>
+                    <span className={`text-[11px] font-bold tabular-nums ${verdictColor(p.verdict)}`}>
                       {p.risk_score} {p.verdict}
                     </span>
-                    {p.date && <span className="text-[9px] text-muted-foreground font-mono">{p.date.slice(0, 10)}</span>}
+                    {p.date && <span className="text-[10px] text-muted-foreground font-mono">{p.date.slice(0, 10)}</span>}
                   </div>
-                  <p className="text-[11px] text-foreground/90 leading-snug line-clamp-2">{p.text}</p>
+                  <p className="text-xs text-foreground/90 leading-snug line-clamp-2">{p.text}</p>
                   {p.evidence.map((e, j) => (
-                    <p key={j} className="text-[10px] text-muted-foreground mt-1 leading-snug">• {e.description}</p>
+                    <p key={j} className="text-[11px] text-muted-foreground mt-1 leading-snug">• {e.description}</p>
                   ))}
                 </motion.div>
               ))}
@@ -323,7 +323,7 @@ export default function Inspector() {
                     ].map((stat) => (
                       <div key={stat.label} className="bg-muted rounded-md p-1.5 text-center">
                         <div className={`text-sm font-bold tabular-nums ${stat.color}`}>{stat.value}</div>
-                        <div className="text-[9px] text-muted-foreground">{stat.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{stat.label}</div>
                       </div>
                     ))}
                   </div>
@@ -334,7 +334,7 @@ export default function Inspector() {
                       disabled={reported}
                       variant="outline"
                       size="sm"
-                      className="h-6 text-[10px] px-2 text-red-600 border-red-200 hover:bg-red-50"
+                      className="h-6 text-[11px] px-2 text-red-600 border-red-200 hover:bg-red-50"
                     >
                       <Flag size={10} weight="bold" />
                       {reported ? 'Reported' : 'Report scam'}
@@ -345,7 +345,7 @@ export default function Inspector() {
 
               {result.evidence_chain.length > 0 && (
                 <div className="space-y-1.5">
-                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase">Evidence</h4>
+                  <h4 className="text-[11px] font-semibold text-muted-foreground uppercase">Evidence</h4>
                   {result.evidence_chain.map((item, i) => (
                     <EvidenceCard key={i} item={item} index={i} />
                   ))}

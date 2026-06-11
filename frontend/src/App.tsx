@@ -162,19 +162,19 @@ export default function App() {
     <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden relative">
       {/* ── Header ── */}
       <header className="border-b shrink-0 z-50">
-        <div className="mx-auto px-5 h-11 flex items-center justify-between">
+        <div className="mx-auto px-5 h-12 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <BridgeIcon size={22} className="text-primary" />
-            <span className="text-base font-bold tracking-tight text-foreground">Carryover</span>
+            <BridgeIcon size={27} className="text-primary" />
+            <span className="text-lg font-bold tracking-tight text-foreground">Carryover</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-[10px] text-muted-foreground font-mono hidden lg:inline">
+            <span className="text-[11px] text-muted-foreground font-mono hidden lg:inline">
               community-reported, updated daily
             </span>
             <button
               onClick={() => setActiveTab(activeTab === 'elastic' ? 'destinations' : 'elastic')}
               title="Behind the scenes: everything indexed in Elasticsearch"
-              className={`flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-md border transition-colors ${
+              className={`flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider px-2 py-1 rounded-md border transition-colors ${
                 activeTab === 'elastic'
                   ? 'border-primary/50 text-primary bg-primary/10'
                   : 'border-border text-muted-foreground hover:text-foreground hover:border-ring'
@@ -207,10 +207,10 @@ export default function App() {
               <div className="px-4 lg:px-5 py-3 border-b">
                 <div className="flex flex-wrap items-center justify-between gap-y-2">
                   <div>
-                    <h1 className="text-xl font-bold leading-tight">
+                    <h1 className="text-2xl font-bold leading-tight">
                       Hello, {name} {countryFlag(nationality)}
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-[15px] text-muted-foreground mt-0.5">
                       Visa intelligence for{' '}
                       <span className="relative inline-flex items-center">
                         <select
@@ -230,7 +230,7 @@ export default function App() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-semibold text-muted-foreground uppercase">Destination</span>
+                    <span className="text-[11px] font-mono font-semibold text-muted-foreground uppercase">Destination</span>
                     <select
                       value={selectedDest}
                       onChange={(e) => setSelectedDest(e.target.value)}
@@ -250,7 +250,7 @@ export default function App() {
                   <button
                     key={key}
                     onClick={() => setDetailPurpose(key)}
-                    className={`flex items-center justify-center gap-1.5 py-3 text-[11px] font-mono uppercase tracking-wider border-b-2 transition-colors ${
+                    className={`flex items-center justify-center gap-1.5 py-3 text-xs font-mono uppercase tracking-wider border-b-2 transition-colors ${
                       detailPurpose === key
                         ? 'bg-primary/10 text-primary font-semibold border-primary'
                         : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-card/40'
@@ -295,7 +295,7 @@ export default function App() {
                   { label: 'POLICIES', value: stats.policies, color: 'text-emerald-400' },
                 ].map((s) => (
                   <div key={s.label} className="px-3 text-center">
-                    <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{s.label}</div>
+                    <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{s.label}</div>
                     <div className={`text-sm font-bold tabular-nums leading-tight ${s.color}`}>
                       {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
                     </div>
@@ -347,7 +347,7 @@ export default function App() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] font-mono text-muted-foreground uppercase">Acceptance</div>
+                      <div className="text-[11px] font-mono text-muted-foreground uppercase">Acceptance</div>
                       <div className={`text-3xl font-bold tabular-nums ${
                         (selectedDestData?.score ?? 0) >= 65 ? 'text-emerald-400' :
                         (selectedDestData?.score ?? 0) >= 45 ? 'text-amber-400' : 'text-red-400'
@@ -360,23 +360,23 @@ export default function App() {
                   {/* Stats grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-border border-b">
                     <div className="px-4 py-2.5">
-                      <div className="text-[10px] font-mono text-muted-foreground uppercase">Fee</div>
+                      <div className="text-[11px] font-mono text-muted-foreground uppercase">Fee</div>
                       <div className="text-base font-bold tabular-nums">
                         {policy?.fee || 'Varies'}
                       </div>
                     </div>
                     <div className="px-4 py-2.5">
-                      <div className="text-[10px] font-mono text-muted-foreground uppercase">Processing</div>
+                      <div className="text-[11px] font-mono text-muted-foreground uppercase">Processing</div>
                       <div className="text-base font-bold">
                         {policy?.processing_time || 'Varies'}
                       </div>
                     </div>
                     <div className="px-4 py-2.5">
-                      <div className="text-[10px] font-mono text-muted-foreground uppercase">PR Timeline</div>
+                      <div className="text-[11px] font-mono text-muted-foreground uppercase">PR Timeline</div>
                       <div className="text-sm font-bold">{meta?.prTimeline.split('(')[0].trim() || 'Varies'}</div>
                     </div>
                     <div className="px-4 py-2.5">
-                      <div className="text-[10px] font-mono text-muted-foreground uppercase">Scam Reports</div>
+                      <div className="text-[11px] font-mono text-muted-foreground uppercase">Scam Reports</div>
                       <div className="text-base font-bold tabular-nums text-red-400">{selectedDestData?.scam_reports ?? 0}</div>
                     </div>
                   </div>
@@ -412,11 +412,11 @@ export default function App() {
                     {meta && (
                       <div className="border rounded-lg overflow-hidden grid grid-cols-2 divide-x divide-border">
                         <div className="p-4">
-                          <h3 className="text-[10px] font-mono font-semibold text-primary uppercase tracking-wider mb-1">Economy</h3>
+                          <h3 className="text-[11px] font-mono font-semibold text-primary uppercase tracking-wider mb-1">Economy</h3>
                           <p className="text-sm leading-relaxed">{meta.economy}</p>
                         </div>
                         <div className="p-4">
-                          <h3 className="text-[10px] font-mono font-semibold text-primary uppercase tracking-wider mb-1">Work</h3>
+                          <h3 className="text-[11px] font-mono font-semibold text-primary uppercase tracking-wider mb-1">Work</h3>
                           <p className="text-sm leading-relaxed">{meta.workOpportunities}</p>
                         </div>
                       </div>
@@ -433,7 +433,7 @@ export default function App() {
                             {meta.topCities.slice(0, 3).map((city) => (
                               <div key={city.name} className="p-3">
                                 <span className="text-sm font-semibold">{city.name}</span>
-                                <span className="text-[10px] font-mono text-muted-foreground block">{city.monthlyCost}/mo</span>
+                                <span className="text-[11px] font-mono text-muted-foreground block">{city.monthlyCost}/mo</span>
                                 <span className="text-xs text-primary font-mono">
                                   {city.diaspora[nationality] ? `~${city.diaspora[nationality]} ${natName}` : 'Small community'}
                                 </span>
@@ -445,7 +445,7 @@ export default function App() {
                               {meta.topCities.slice(3).map((city) => (
                                 <div key={city.name} className="p-3">
                                   <span className="text-sm font-semibold">{city.name}</span>
-                                  <span className="text-[10px] font-mono text-muted-foreground block">{city.monthlyCost}/mo</span>
+                                  <span className="text-[11px] font-mono text-muted-foreground block">{city.monthlyCost}/mo</span>
                                   <span className="text-xs text-primary font-mono">
                                     {city.diaspora[nationality] ? `~${city.diaspora[nationality]} ${natName}` : 'Small community'}
                                   </span>
@@ -491,7 +491,7 @@ export default function App() {
                     <div className="border rounded-lg overflow-hidden divide-y divide-border">
                       {meta?.scams && (
                         <div className="p-4">
-                          <h3 className="text-[10px] font-mono font-semibold text-red-400 uppercase tracking-wider mb-2">Common Scams</h3>
+                          <h3 className="text-[11px] font-mono font-semibold text-red-400 uppercase tracking-wider mb-2">Common Scams</h3>
                           <div className="space-y-1.5">
                             {meta.scams.map((scam, i) => (
                               <div key={i} className="flex items-start gap-2">
@@ -504,7 +504,7 @@ export default function App() {
                       )}
                       {meta?.realTalk && (
                         <div className="p-4 border-l-2 border-l-primary">
-                          <h3 className="text-[10px] font-mono font-semibold text-primary uppercase tracking-wider mb-1">Real Talk</h3>
+                          <h3 className="text-[11px] font-mono font-semibold text-primary uppercase tracking-wider mb-1">Real Talk</h3>
                           <p className="text-sm italic leading-relaxed">{meta.realTalk}</p>
                         </div>
                       )}
@@ -586,7 +586,7 @@ export default function App() {
               <button
                 key={s}
                 onClick={() => askKibo(s)}
-                className="text-[11px] px-3 py-1.5 rounded-full border border-border bg-background/85 backdrop-blur text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shadow-sm"
+                className="text-xs px-3 py-1.5 rounded-full border border-border bg-background/85 backdrop-blur text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shadow-sm"
               >
                 {s}
               </button>
@@ -609,7 +609,7 @@ export default function App() {
             disabled={kiboBusy}
             className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/80"
           />
-          <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline shrink-0 px-1.5 py-0.5 rounded bg-muted/60">
+          <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline shrink-0 px-1.5 py-0.5 rounded bg-muted/60">
             {nationality}→{selectedDest}
           </span>
           <button

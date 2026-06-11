@@ -49,7 +49,7 @@ export default function VisaOverview({ destinations, selected, onSelect, loading
             <span className="text-2xl shrink-0">{countryFlag(entry.code)}</span>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold truncate">{entry.name}</div>
-              <div className="text-[10px] font-mono text-muted-foreground uppercase">
+              <div className="text-[11px] font-mono text-muted-foreground uppercase">
                 {meta?.region || 'INTERNATIONAL'}
               </div>
             </div>
