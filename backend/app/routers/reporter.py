@@ -21,6 +21,7 @@ from app.models.schemas import (
     ReporterFileRequest, ReporterFileResponse,
     ComplaintDraft, DeliveryStatus,
 )
+from app.config import get_settings
 from app.services.elastic import es
 from app.services import gemini, notify
 
@@ -149,7 +150,14 @@ async def file_report(req: ReporterFileRequest):
     )
 
     # ── 3. Actually send it through the outbound channel ──────────────────
+    # With REPORT_SEND_TO_AUTHORITY on, the complaint goes straight to the
+    # authority's reporting inbox (record copy BCC'd to REPORT_TO_EMAIL);
+    # otherwise it stays in the configured inbox, ready to forward.
+    authority_email = (
+        authority.get("email") if get_settings().report_send_to_authority else None
+    )
     delivery_raw = await notify.send_email(
+        to=authority_email or None,
         subject=subject,
         body=body + f"\n\n— Filed via Carryover Reporter. Case {case_ref}. Intended authority: {authority['name']}.",
         html=notify.complaint_html(
@@ -179,8 +187,10 @@ async def file_report(req: ReporterFileRequest):
     bits = []
     if filed:
         bits.append("filed a community warning to Elastic (future checks will flag it)")
-    if delivery.delivered:
-        bits.append(f"sent a formal complaint to {authority['name']}")
+    if delivery.delivered and authority_email:
+        bits.append(f"sent the complaint directly to {authority['name']} ({authority_email})")
+    elif delivery.delivered:
+        bits.append(f"sent a formal complaint addressed to {authority['name']}")
     else:
         bits.append(f"drafted a complaint to {authority['name']} (ready to send)")
     summary = "Done — I " + " and ".join(bits) + "."

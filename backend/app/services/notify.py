@@ -33,31 +33,39 @@ def email_configured() -> bool:
 # Where a complaint for a given destination should be filed. `address` is the
 # authority the letter is written to; `portal` is where a human can also file
 # directly. Falls back to a generic entry for unmapped destinations.
+# `email` is the authority's public reporting inbox where one exists — many
+# (IC3, Scamwatch, Home Office) only accept reports through a web portal, so
+# their email stays empty and delivery falls back to the configured inbox.
 AUTHORITIES: dict[str, dict[str, str]] = {
     "GB": {
         "name": "UK Immigration Enforcement",
         "address": "Immigration Enforcement, Home Office",
         "portal": "https://www.gov.uk/report-immigration-crime",
+        "email": "",
     },
     "US": {
         "name": "FBI Internet Crime Complaint Center (IC3)",
         "address": "FBI IC3 / FTC Consumer Sentinel",
         "portal": "https://www.ic3.gov/",
+        "email": "",
     },
     "CA": {
         "name": "Canadian Anti-Fraud Centre",
         "address": "Canadian Anti-Fraud Centre (CAFC)",
         "portal": "https://antifraudcentre-centreantifraude.ca/report-signalez-eng.htm",
+        "email": "info@antifraudcentre.ca",
     },
     "AU": {
         "name": "Scamwatch (ACCC)",
         "address": "Scamwatch, Australian Competition & Consumer Commission",
         "portal": "https://www.scamwatch.gov.au/report-a-scam",
+        "email": "",
     },
     "DE": {
         "name": "German Federal Foreign Office — Visa Fraud",
         "address": "Auswärtiges Amt, Visa Section",
         "portal": "https://www.auswaertiges-amt.de/en",
+        "email": "buergerservice@diplo.de",
     },
 }
 
@@ -65,6 +73,7 @@ GENERIC_AUTHORITY = {
     "name": "Destination Embassy — Visa Fraud Desk",
     "address": "Consular / Visa Fraud Desk of the destination embassy",
     "portal": "",
+    "email": "",
 }
 
 
@@ -173,9 +182,17 @@ def complaint_html(
 
 
 async def send_email(
-    subject: str, body: str, reply_to: str | None = None, html: str | None = None,
+    subject: str,
+    body: str,
+    reply_to: str | None = None,
+    html: str | None = None,
+    to: str | None = None,
 ) -> dict:
-    """Deliver a complaint via Resend. Never raises — returns a status dict."""
+    """Deliver a complaint via Resend. Never raises — returns a status dict.
+
+    `to` overrides the recipient (the authority's inbox); the configured
+    REPORT_TO_EMAIL is then BCC'd as the sender's record copy.
+    """
     if not email_configured():
         return {
             "channel": "draft",
@@ -183,12 +200,15 @@ async def send_email(
             "detail": "Email channel not configured (set RESEND_API_KEY + REPORT_TO_EMAIL).",
         }
 
+    recipient = to or settings.report_to_email
     payload = {
         "from": settings.report_from_email,
-        "to": [settings.report_to_email],
+        "to": [recipient],
         "subject": subject,
         "text": body,
     }
+    if to and to != settings.report_to_email:
+        payload["bcc"] = [settings.report_to_email]
     if html:
         payload["html"] = html
     if reply_to:
@@ -208,9 +228,9 @@ async def send_email(
         return {
             "channel": "email",
             "delivered": True,
-            "to": settings.report_to_email,
+            "to": recipient,
             "message_id": msg_id,
-            "detail": f"Complaint emailed to {settings.report_to_email}.",
+            "detail": f"Complaint emailed to {recipient}.",
         }
     except Exception as e:  # network / DNS / timeout — stay graceful
         return {"channel": "email", "delivered": False, "detail": f"Send failed: {e}"}
