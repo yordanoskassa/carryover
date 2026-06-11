@@ -150,11 +150,11 @@ export default function App() {
 
   useEffect(() => {
     setVisaLoading(true);
-    getVisaOverview(nationality)
+    getVisaOverview(nationality, detailPurpose)
       .then(setVisaData)
       .catch(() => {})
       .finally(() => setVisaLoading(false));
-  }, [nationality]);
+  }, [nationality, detailPurpose]);
 
   useEffect(() => {
     Promise.all([getDashboard(), getFlaggedAgencies(), getFlaggedPhones()])
@@ -613,7 +613,7 @@ export default function App() {
       </div>
 
       {/* ── Kibo command bar: floating, bottom-center of the app ── */}
-      <div className="absolute bottom-4 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(880px,calc(100%-1.5rem))] flex flex-col items-center gap-2.5 pointer-events-none">
+      <div className="absolute bottom-4 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(850px,calc(100%-1.5rem))] flex flex-col items-center gap-2.5 pointer-events-none">
         {!kiboStarted && (
           <div className="flex flex-wrap gap-2 justify-center pointer-events-auto">
             {[
@@ -633,7 +633,7 @@ export default function App() {
         )}
         <form
           onSubmit={(e) => { e.preventDefault(); askKibo(); }}
-          className="w-full flex items-center gap-3 rounded-2xl border border-primary/45 bg-card px-4 py-3.5 shadow-[0_0_0_1px_rgba(16,185,129,0.12),0_0_34px_-4px_rgba(16,185,129,0.45),0_16px_44px_rgba(0,0,0,0.6)] pointer-events-auto transition-shadow focus-within:border-primary focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_0_44px_-2px_rgba(16,185,129,0.6),0_16px_44px_rgba(0,0,0,0.6)]"
+          className="w-full flex items-center gap-3 rounded-2xl border border-white/25 bg-card px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_0_30px_-4px_rgba(255,255,255,0.30),0_16px_44px_rgba(0,0,0,0.6)] pointer-events-auto transition-shadow focus-within:border-white/50 focus-within:shadow-[0_0_0_1px_rgba(255,255,255,0.16),0_0_40px_-2px_rgba(255,255,255,0.45),0_16px_44px_rgba(0,0,0,0.6)]"
         >
           <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
             {kiboBusy

@@ -211,8 +211,8 @@ export interface VisaOverviewData {
   crawled_sources: CrawledSource[];
 }
 
-export function getVisaOverview(nationality: string) {
-  return request<VisaOverviewData>(`/dashboard/visa-overview?nationality=${nationality}`);
+export function getVisaOverview(nationality: string, purpose = 'student') {
+  return request<VisaOverviewData>(`/dashboard/visa-overview?nationality=${nationality}&purpose=${purpose}`);
 }
 
 export function getFlaggedAgencies() {

@@ -109,7 +109,7 @@ async def get_dashboard_stats():
 
 
 @router.get("/visa-overview")
-async def get_visa_overview(nationality: str = "ET"):
+async def get_visa_overview(nationality: str = "ET", purpose: str = "student"):
     """Visa restriction overview for a nationality across all destinations.
 
     Combines policy count from visa-policies and scam volume from
@@ -249,13 +249,16 @@ async def get_visa_overview(nationality: str = "ET"):
         scams = scam_counts.get(dest, 0)
 
         # Openness prior + how well we can guide on it (structured coverage,
-        # crawl breadth) − scam pressure ± a stable corridor-specific nudge so
-        # the same destination reads differently for different nationalities.
-        base = BASE_OPENNESS.get(dest, 55)
+        # crawl breadth) − scam pressure ± a stable corridor+purpose nudge so
+        # the same destination reads differently per nationality AND purpose.
+        # Purpose shifts mirror real-world difficulty: tourist visas are the
+        # most granted, work visas the most gated.
+        PURPOSE_SHIFT = {"student": 3, "work": -8, "family": -4, "tourist": 7}
+        base = BASE_OPENNESS.get(dest, 55) + PURPOSE_SHIFT.get(purpose, 0)
         policy_score = min((policies / max_policies * 8) if max_policies else 4, 8)
         coverage_boost = min(structured_counts.get(dest, 0), 3) * 4
         scam_penalty = min((scams / max_scams * 18) if max_scams else 0, 18)
-        jitter = zlib.crc32(f"{nationality}->{dest}".encode()) % 9 - 4
+        jitter = zlib.crc32(f"{nationality}->{dest}:{purpose}".encode()) % 11 - 5
         score = max(5, min(96, int(base + policy_score + coverage_boost - scam_penalty + jitter)))
 
         if score >= 65:

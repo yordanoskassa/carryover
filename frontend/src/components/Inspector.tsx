@@ -90,7 +90,7 @@ const verdictColor = (verdict: string) =>
     : 'text-red-400';
 
 export default function Inspector() {
-  const [mode, setMode] = useState<'post' | 'handle'>('post');
+  const [mode, setMode] = useState<'post' | 'handle'>('handle');
   const [postText, setPostText] = useState('');
   const [agencyName, setAgencyName] = useState('');
   const [handle, setHandle] = useState('');
@@ -149,44 +149,81 @@ export default function Inspector() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agency Inspector</h3>
-        <div className="flex rounded-md border border-border overflow-hidden text-[11px] font-medium">
-          <button
-            onClick={() => { setMode('post'); setError(null); }}
-            className={`px-2 py-1 transition-colors ${mode === 'post' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50'}`}
-          >
-            Paste post
-          </button>
+        <div className="flex rounded-lg border border-border overflow-hidden text-xs font-medium">
           <button
             onClick={() => { setMode('handle'); setError(null); }}
-            className={`px-2 py-1 transition-colors flex items-center gap-1 ${mode === 'handle' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted/50'}`}
+            className={`px-3 py-1.5 transition-colors flex items-center gap-1.5 ${mode === 'handle' ? 'bg-red-500/15 text-red-400 font-semibold' : 'text-muted-foreground hover:bg-muted/50'}`}
           >
-            <TelegramLogo size={11} weight="bold" /> Scan handle
+            <TelegramLogo size={13} weight="bold" /> Scan handle
+          </button>
+          <button
+            onClick={() => { setMode('post'); setError(null); }}
+            className={`px-3 py-1.5 transition-colors border-l border-border ${mode === 'post' ? 'bg-red-500/15 text-red-400 font-semibold' : 'text-muted-foreground hover:bg-muted/50'}`}
+          >
+            Paste post
           </button>
         </div>
       </div>
 
-      {mode === 'post' ? (
-        <>
+      {mode === 'handle' ? (
+        <div className="mb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 h-9 rounded-lg border border-input bg-card px-3 focus-within:border-red-400/60 transition-colors">
+              <TelegramLogo size={15} weight="bold" className="text-red-400 shrink-0" />
+              <input
+                value={handle}
+                onChange={(e) => setHandle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleScan(); }}
+                placeholder="@agency_handle or t.me/…"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 min-w-0"
+              />
+            </div>
+            <select
+              value={corridor}
+              onChange={(e) => setCorridor(e.target.value)}
+              className="h-9 rounded-lg border border-input bg-card px-2.5 text-xs outline-none focus-visible:border-ring appearance-none cursor-pointer shrink-0"
+            >
+              <option value="">Corridor</option>
+              {CORRIDORS.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <Button
+              onClick={handleScan}
+              disabled={loading || !handle.trim()}
+              size="sm"
+              className="h-9 text-xs px-3.5 bg-red-600 hover:bg-red-500 text-white shrink-0"
+            >
+              {loading ? <CircleNotch size={13} className="animate-spin" /> : <MagnifyingGlass size={13} weight="bold" />}
+              {loading ? 'Scanning' : 'Scan'}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            Inspector pulls the channel's public posts, indexes them to Elastic, and scores each one for fraud.
+          </p>
+        </div>
+      ) : (
+        <div className="mb-3">
           <textarea
             value={postText}
             onChange={(e) => setPostText(e.target.value)}
-            rows={2}
-            placeholder="Paste agency post..."
-            className="w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-xs outline-none focus-visible:border-ring resize-none mb-2"
+            rows={3}
+            placeholder="Paste the agency's post or offer here…"
+            className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-red-400/60 resize-none mb-2 placeholder:text-muted-foreground/70 transition-colors"
           />
-          <div className="flex items-center gap-1.5 mb-2">
+          <div className="flex items-center gap-2">
             <input
               value={agencyName}
               onChange={(e) => setAgencyName(e.target.value)}
-              placeholder="Agency name"
-              className="h-7 flex-1 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring"
+              placeholder="Agency name (optional)"
+              className="h-8 flex-1 rounded-lg border border-input bg-card px-2.5 text-xs outline-none focus-visible:border-ring min-w-0"
             />
             <select
               value={corridor}
               onChange={(e) => setCorridor(e.target.value)}
-              className="h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring appearance-none cursor-pointer"
+              className="h-8 rounded-lg border border-input bg-card px-2.5 text-xs outline-none focus-visible:border-ring appearance-none cursor-pointer shrink-0"
             >
               <option value="">Corridor</option>
               {CORRIDORS.map((c) => (
@@ -197,41 +234,12 @@ export default function Inspector() {
               onClick={handleEvaluate}
               disabled={loading || !postText.trim()}
               size="sm"
-              className="h-7 text-xs px-2.5 bg-red-600 hover:bg-red-500 text-white"
+              className="h-8 text-xs px-3.5 bg-red-600 hover:bg-red-500 text-white shrink-0"
             >
-              {loading ? <CircleNotch size={12} className="animate-spin" /> : <MagnifyingGlass size={12} weight="bold" />}
+              {loading ? <CircleNotch size={13} className="animate-spin" /> : <MagnifyingGlass size={13} weight="bold" />}
               {loading ? 'Analyzing' : 'Evaluate'}
             </Button>
           </div>
-        </>
-      ) : (
-        <div className="flex items-center gap-1.5 mb-2">
-          <input
-            value={handle}
-            onChange={(e) => setHandle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleScan(); }}
-            placeholder="@agency_handle or t.me/..."
-            className="h-7 flex-1 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring"
-          />
-          <select
-            value={corridor}
-            onChange={(e) => setCorridor(e.target.value)}
-            className="h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring appearance-none cursor-pointer"
-          >
-            <option value="">Corridor</option>
-            {CORRIDORS.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <Button
-            onClick={handleScan}
-            disabled={loading || !handle.trim()}
-            size="sm"
-            className="h-7 text-xs px-2.5 bg-red-600 hover:bg-red-500 text-white"
-          >
-            {loading ? <CircleNotch size={12} className="animate-spin" /> : <MagnifyingGlass size={12} weight="bold" />}
-            {loading ? 'Scanning' : 'Scan'}
-          </Button>
         </div>
       )}
 
