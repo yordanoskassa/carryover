@@ -349,17 +349,22 @@ async def find_authority_email(destination: str, authority: str) -> str | None:
     if key in _authority_email_cache:
         return _authority_email_cache[key]
     try:
+        import asyncio
         from google.genai import types
         client = _get_client()
-        resp = await client.aio.models.generate_content(
-            model=settings.gemini_model,
-            contents=AUTHORITY_EMAIL_PROMPT.format(
-                destination_name=key, authority=authority,
+        # Hard cap: the Report action must not hang on a slow grounded search.
+        resp = await asyncio.wait_for(
+            client.aio.models.generate_content(
+                model=settings.gemini_model,
+                contents=AUTHORITY_EMAIL_PROMPT.format(
+                    destination_name=key, authority=authority,
+                ),
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    temperature=0.0,
+                ),
             ),
-            config=types.GenerateContentConfig(
-                tools=[types.Tool(google_search=types.GoogleSearch())],
-                temperature=0.0,
-            ),
+            timeout=20,
         )
         data = _extract_json(resp.text or "") or {}
         email = (data.get("email") or "").strip()

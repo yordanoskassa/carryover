@@ -201,6 +201,15 @@ After both services deploy, register the indices, tools, and agents once:
 curl -X POST https://<your-domain>/api/setup
 ```
 
+## Deploying the frontend on Netlify
+
+[netlify.toml](netlify.toml) at the repo root configures everything: base
+`frontend`, build `npm run build`, publish `dist`, an `/api/*` rewrite to the
+live backend, and the SPA fallback. Just import the GitHub repo in Netlify
+(**Add new site → Import an existing project**) and deploy — no build settings
+or environment variables to fill in. To point at a different backend, edit the
+redirect target in `netlify.toml`.
+
 To redeploy on every push, enable **Auto Deploy** in each service's GitHub
 settings (or add the deploy webhook to the repo).
 
