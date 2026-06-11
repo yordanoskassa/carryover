@@ -102,7 +102,7 @@ export default function App() {
   const [nationality, setNationality] = useState(() => localStorage.getItem('co_nationality') || 'ET');
   const [selectedDest, setSelectedDest] = useState(() => localStorage.getItem('co_dest') || 'US');
   const [search, setSearch] = useState('');
-  const [stats, setStats] = useState<DashboardStats>({ scams: 0, policies: 0, flaggedAgencies: 0, sharedPhones: 0 });
+  const [, setStats] = useState<DashboardStats>({ scams: 0, policies: 0, flaggedAgencies: 0, sharedPhones: 0 });
   const [name, setName] = useState(() => localStorage.getItem('co_name') || 'Traveler');
   // First-run gate: until a name is stored, a blocking onboarding modal asks
   // for the user's name and origin country (localStorage only — no accounts).
@@ -354,22 +354,6 @@ export default function App() {
                   </button>
                 ))}
               </nav>
-
-              <div className="hidden md:flex items-center divide-x divide-border shrink-0">
-                {[
-                  { label: 'INDEXED', value: visaData?.destinations.length ?? 0, color: 'text-primary' },
-                  { label: 'FLAGGED', value: stats.flaggedAgencies, color: 'text-red-400' },
-                  { label: 'REPORTS', value: stats.scams, color: 'text-amber-400' },
-                  { label: 'POLICIES', value: stats.policies, color: 'text-emerald-400' },
-                ].map((s) => (
-                  <div key={s.label} className="px-3 text-center">
-                    <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{s.label}</div>
-                    <div className={`text-sm font-bold tabular-nums leading-tight ${s.color}`}>
-                      {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
