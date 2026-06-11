@@ -28,7 +28,10 @@ class Settings(BaseSettings):
     # warning and returns the drafted complaint (delivery reports "draft").
     resend_api_key: str = ""
     report_from_email: str = "Carryover Reporter <onboarding@resend.dev>"
-    report_to_email: str = ""  # record-copy inbox (BCC'd on authority sends)
+    # Record-copy inbox (BCC'd on authority sends) and delivery fallback.
+    # Hardcoded to the Resend account owner for the demo — Resend's sandbox
+    # only delivers to this address until a domain is verified.
+    report_to_email: str = "jordan.kebede72@gmail.com"
 
     model_config = {"env_file": str(_ENV_FILE), "env_file_encoding": "utf-8"}
 

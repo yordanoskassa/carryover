@@ -251,6 +251,37 @@ async def send_email(
             )
         if res.status_code >= 400:
             logger.warning("send_email: Resend rejected (%s): %s", res.status_code, res.text[:300])
+            # Sandbox accounts can only deliver to the account owner's address.
+            # Reroute the complaint to the record-copy inbox instead of failing
+            # — it stays addressed to the authority and ready to forward.
+            sandbox = "your own email address" in res.text
+            fallback = settings.report_to_email
+            if sandbox and fallback and recipient != fallback:
+                payload["to"] = [fallback]
+                payload.pop("bcc", None)
+                async with httpx.AsyncClient(timeout=15) as client:
+                    res2 = await client.post(
+                        RESEND_ENDPOINT,
+                        headers={"Authorization": f"Bearer {settings.resend_api_key}"},
+                        json=payload,
+                    )
+                if res2.status_code < 400:
+                    msg_id = res2.json().get("id", "")
+                    logger.info(
+                        "send_email: sandbox reroute %s -> %s (message_id=%s)",
+                        recipient, fallback, msg_id,
+                    )
+                    return {
+                        "channel": "email",
+                        "delivered": True,
+                        "to": fallback,
+                        "message_id": msg_id,
+                        "detail": (
+                            f"Delivered to {fallback} (Resend sandbox — addressed to "
+                            f"{recipient}, verify a domain to send direct)."
+                        ),
+                    }
+                logger.warning("send_email: fallback also rejected (%s): %s", res2.status_code, res2.text[:300])
             return {"channel": "email", "delivered": False,
                     "detail": f"Resend error {res.status_code}: {res.text[:160]}"}
         msg_id = res.json().get("id", "")
