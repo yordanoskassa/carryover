@@ -19,6 +19,7 @@ interface KiboProps {
   onInvestigation?: (data: ScanAgencyResponse) => void;
   onBusyChange?: (busy: boolean) => void;
   onContextChange?: (ctx: { nationality: string; destination: string }) => void;
+  onAgentRoute?: (agents: KiboAgentId[]) => void;
 }
 
 export interface KiboHandle {
@@ -310,7 +311,7 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
 }
 
 const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
-  { nationality, destination, purpose, onInvestigation, onBusyChange, onContextChange }, ref,
+  { nationality, destination, purpose, onInvestigation, onBusyChange, onContextChange, onAgentRoute }, ref,
 ) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -336,8 +337,13 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
       for (const event of res.events) {
         if (event.kind === 'handoff') {
           setWorkingAgents(event.agents);
+          onAgentRoute?.(event.agents);
           setItems((prev) => [...prev, event]);
           await delay(500);
+        } else if (event.kind === 'step') {
+          // Narrated unit of agent work — play it back like a live trace.
+          setItems((prev) => [...prev, event]);
+          await delay(650);
         } else if (event.kind === 'agent_card') {
           setItems((prev) => [...prev, event]);
           setWorkingAgents((prev) => prev.filter((a) => a !== event.agent));
@@ -433,6 +439,27 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
             return item.agent === 'inspector'
               ? <InspectorCard key={i} data={item.data as InspectorCardData} tools={item.tools} />
               : <AdvisorCard key={i} data={item.data as AdvisorCardData} tools={item.tools} />;
+          }
+          if (item.kind === 'step') {
+            const stepColor = item.agent === 'inspector' ? 'text-red-400'
+              : item.agent === 'advisor' ? 'text-blue-400' : 'text-primary';
+            const stepName = item.agent === 'kibo' ? 'Kibo' : AGENT_META[item.agent].name;
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-start gap-2 pl-3 text-[11px] text-muted-foreground"
+              >
+                <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${
+                  item.agent === 'inspector' ? 'bg-red-400' : item.agent === 'advisor' ? 'bg-blue-400' : 'bg-primary'
+                }`} />
+                <span className="leading-snug">
+                  <span className={`font-semibold ${stepColor}`}>{stepName}</span>
+                  {' '}· {item.text}
+                </span>
+              </motion.div>
+            );
           }
           if (item.kind === 'context') {
             return (

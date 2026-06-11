@@ -145,6 +145,13 @@ export default function App() {
     if (COUNTRIES.some((c) => c.code === ctx.nationality)) setNationality(ctx.nationality);
   };
 
+  // Kibo's routing drives the main view: an Inspector question lands on the
+  // Inspector tab, an Advisor question on the Advisor tab.
+  const handleAgentRoute = (agents: string[]) => {
+    if (agents.includes('inspector')) setActiveTab('agency');
+    else if (agents.includes('advisor')) setActiveTab('destinations');
+  };
+
   useEffect(() => { localStorage.setItem('co_nationality', nationality); }, [nationality]);
   useEffect(() => { localStorage.setItem('co_dest', selectedDest); }, [selectedDest]);
 
@@ -607,6 +614,7 @@ export default function App() {
               onInvestigation={handleInvestigation}
               onBusyChange={setKiboBusy}
               onContextChange={handleContextChange}
+              onAgentRoute={handleAgentRoute}
             />
           </aside>
         )}

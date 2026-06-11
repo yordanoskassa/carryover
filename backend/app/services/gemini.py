@@ -87,8 +87,9 @@ claim, advisor supplies the official policy to compare against).
 
 If the question names a destination or origin country DIFFERENT from the user's
 current context, set destination_code / nationality_code to that country's ISO
-alpha-2 code so the app can switch corridors. Leave them null when the question
-stays within the current context.
+alpha-2 code so the app can switch corridors. Demonyms and adjectives count:
+"an Irish student visa" -> destination_code "IE", "the German process" -> "DE".
+Leave them null when the question stays within the current context.
 
 User context: citizen of {nationality}, destination {destination}, purpose {purpose}.
 User question:

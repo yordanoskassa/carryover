@@ -304,9 +304,17 @@ export interface KiboContextEvent {
   destination: string;
 }
 
+// A narrated unit of agent work ("Searching visa-policies with ELSER…") the
+// chat plays back sequentially — the visible multistep trace.
+export interface KiboStepEvent {
+  kind: 'step';
+  agent: KiboAgentId | 'kibo';
+  text: string;
+}
+
 export type KiboEvent =
   | KiboHandoffEvent | KiboAgentCardEvent | KiboReplyEvent
-  | KiboScanEvent | KiboActionPromptEvent | KiboContextEvent;
+  | KiboScanEvent | KiboActionPromptEvent | KiboContextEvent | KiboStepEvent;
 
 export interface ReporterResult {
   filed: boolean;

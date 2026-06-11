@@ -22,6 +22,7 @@ from app.models.schemas import AdvisorRequest, InspectorRequest, KiboChatRequest
 from app.routers.advisor import structured_requirements
 from app.routers.inspector import evaluate_agency, scan_agency, ScanAgencyRequest
 from app.services import gemini
+from app.services.elastic import es
 
 router = APIRouter(prefix="/api/kibo", tags=["kibo"])
 
@@ -82,22 +83,29 @@ _ADVICE_HINTS = re.compile(
 )
 _PHONE = re.compile(r"\+?\d[\d\s().-]{7,}\d")
 
-# Country-name → ISO code for the heuristic router (Gemini extracts these
-# itself via destination_code/nationality_code in the route schema).
+# Country-name/demonym → ISO code for the heuristic router (Gemini extracts
+# these itself via destination_code/nationality_code in the route schema).
+# Adjective forms matter: people ask for "an Irish student visa", not
+# "a visa to Ireland".
 _COUNTRY_NAMES: dict[str, str] = {
-    r"\b(uk|united kingdom|britain|england)\b": "GB",
-    r"\b(usa?|united states|america)\b": "US",
-    r"\bcanada\b": "CA", r"\bgermany\b": "DE", r"\baustralia\b": "AU",
-    r"\bfrance\b": "FR", r"\bnetherlands\b": "NL", r"\bsweden\b": "SE",
-    r"\bireland\b": "IE", r"\bnorway\b": "NO", r"\bfinland\b": "FI",
-    r"\bswitzerland\b": "CH", r"\bspain\b": "ES", r"\bitaly\b": "IT",
-    r"\bnew zealand\b": "NZ", r"\bsingapore\b": "SG", r"\bjapan\b": "JP",
-    r"\bsouth korea\b": "KR", r"\bportugal\b": "PT", r"\bpoland\b": "PL",
-    r"\b(uae|united arab emirates|dubai)\b": "AE", r"\bqatar\b": "QA",
-    r"\bturkey\b": "TR", r"\bethiopia\b": "ET", r"\bnigeria\b": "NG",
-    r"\bindia\b": "IN", r"\bnepal\b": "NP", r"\bphilippines\b": "PH",
-    r"\bbangladesh\b": "BD", r"\bkenya\b": "KE", r"\bghana\b": "GH",
-    r"\bpakistan\b": "PK", r"\begypt\b": "EG",
+    r"\b(uk|united kingdom|britain|british|england|english visa)\b": "GB",
+    r"\b(usa?|united states|america|american)\b": "US",
+    r"\b(canada|canadian)\b": "CA", r"\b(germany|german)\b": "DE",
+    r"\b(australia|australian)\b": "AU", r"\b(france|french)\b": "FR",
+    r"\b(netherlands|dutch)\b": "NL", r"\b(sweden|swedish)\b": "SE",
+    r"\b(ireland|irish)\b": "IE", r"\b(norway|norwegian)\b": "NO",
+    r"\b(finland|finnish)\b": "FI", r"\b(switzerland|swiss)\b": "CH",
+    r"\b(spain|spanish)\b": "ES", r"\b(italy|italian)\b": "IT",
+    r"\bnew zealand\b": "NZ", r"\b(singapore|singaporean)\b": "SG",
+    r"\b(japan|japanese)\b": "JP", r"\b(south )?korean?\b": "KR",
+    r"\b(portugal|portuguese)\b": "PT", r"\b(poland|polish)\b": "PL",
+    r"\b(uae|united arab emirates|dubai|emirati)\b": "AE", r"\b(qatar|qatari)\b": "QA",
+    r"\b(turkey|turkish)\b": "TR", r"\b(ethiopia|ethiopian)\b": "ET",
+    r"\b(nigeria|nigerian)\b": "NG", r"\b(india|indian)\b": "IN",
+    r"\b(nepal|nepali)\b": "NP", r"\b(philippines|filipino)\b": "PH",
+    r"\b(bangladesh|bangladeshi)\b": "BD", r"\b(kenya|kenyan)\b": "KE",
+    r"\b(ghana|ghanaian)\b": "GH", r"\b(pakistan|pakistani)\b": "PK",
+    r"\b(egypt|egyptian)\b": "EG",
 }
 
 
@@ -256,6 +264,18 @@ async def _scan_flow(req: KiboChatRequest, handle: str) -> dict:
         })
         return {"events": events}
 
+    events.append({
+        "kind": "step", "agent": "inspector",
+        "text": f"Pulled @{handle}'s public Telegram posts ({scan['posts_scanned']} readable)…",
+    })
+    events.append({
+        "kind": "step", "agent": "inspector",
+        "text": f"Indexed {scan['posts_indexed']} posts into agency-posts — ES|QL identity-reuse now tracks its phones…",
+    })
+    events.append({
+        "kind": "step", "agent": "inspector",
+        "text": "Scored every post with Gemini + ELSER against known scams…",
+    })
     # Heavy payload → dashboard panel, not the chat
     events.append({"kind": "scan_result", "data": scan})
 
@@ -335,8 +355,26 @@ async def kibo_chat(req: KiboChatRequest):
 
     results = await asyncio.gather(*tasks.values(), return_exceptions=True)
 
+    # Multistep narration: each specialist's actual work, shown as it "happens"
+    # (the client animates the events sequentially).
+    corridor = f"{req.nationality}->{req.destination}"
     findings: dict = {}
     for agent, result in zip(tasks.keys(), results):
+        if agent == "advisor":
+            events.append({
+                "kind": "step", "agent": "advisor",
+                "text": f"Searching visa-policies with ELSER for the official {req.destination} {req.purpose} route…",
+            })
+        else:
+            events.append({
+                "kind": "step", "agent": "inspector",
+                "text": "Matching the claim against 1,350+ known scams (ELSER semantic search)…",
+            })
+            events.append({
+                "kind": "step", "agent": "inspector",
+                "text": "Checking phone/handle reuse across agencies (ES|QL)…",
+            })
+
         if isinstance(result, Exception):
             events.append({
                 "kind": "agent_card",
@@ -348,6 +386,11 @@ async def kibo_chat(req: KiboChatRequest):
             continue
         data = _trim_inspector(result) if agent == "inspector" else _trim_advisor(result)
         findings[agent] = data
+        if agent == "advisor" and data.get("source_name"):
+            events.append({
+                "kind": "step", "agent": "advisor",
+                "text": f"Reading the official source: {data['source_name']}…",
+            })
         events.append({
             "kind": "agent_card",
             "agent": agent,
@@ -356,6 +399,30 @@ async def kibo_chat(req: KiboChatRequest):
             "data": data,
         })
 
+    # Advisor-only routes still consult Inspector for corridor scam pressure —
+    # the answer should warn even when nobody pasted a suspicious post.
+    if "inspector" not in tasks:
+        try:
+            n_scams = es.count(
+                index="known-scams",
+                query={"term": {"corridor": corridor}},
+            )["count"]
+        except Exception:
+            n_scams = 0
+        findings["corridor_scam_reports"] = n_scams
+        events.append({
+            "kind": "step", "agent": "inspector",
+            "text": (
+                f"Consulted by Advisor: {n_scams} scam report(s) indexed on the {corridor} corridor."
+                if n_scams else
+                f"Consulted by Advisor: no scam reports indexed on {corridor} yet — stay alert for 'guaranteed visa' offers."
+            ),
+        })
+
+    events.append({
+        "kind": "step", "agent": "kibo",
+        "text": "Synthesizing the specialists' findings with Gemini…",
+    })
     synthesis = await gemini.synthesize(
         req.question, req.nationality, req.destination, req.purpose, findings,
     )
