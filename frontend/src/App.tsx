@@ -35,6 +35,7 @@ import Globe from './components/Globe';
 import NewsTicker from './components/NewsTicker';
 import Inspector from './components/Inspector';
 import Reporter from './components/Reporter';
+import FlaggedIntel from './components/FlaggedIntel';
 import Dashboard, { type DashboardStats } from './components/Dashboard';
 import VisaOverview from './components/VisaOverview';
 import Kibo, { type KiboHandle } from './components/Kibo';
@@ -568,6 +569,7 @@ export default function App() {
                     <Dashboard onStats={setStats} refreshKey={dashRefresh} />
                   </div>
                 </div>
+                <FlaggedIntel refreshKey={dashRefresh} />
               </div>
             )}
 

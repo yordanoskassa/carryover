@@ -16,7 +16,11 @@ async def get_dashboard_stats():
     try:
         result = es.esql.query(
             query=(
+                # CFPB-sourced rows are national (no corridor) — exclude them
+                # here or one null corridor fails CorridorStat validation and
+                # empties the whole chart.
                 "FROM known-scams "
+                "| WHERE corridor IS NOT NULL "
                 "| STATS total_reports = COUNT(*), "
                 "  avg_confidence = AVG(confidence), "
                 "  unique_agencies = COUNT_DISTINCT(agency_name) "
@@ -29,7 +33,7 @@ async def get_dashboard_stats():
         for row in result.get("values", []):
             record = dict(zip(cols, row))
             corridor_stats.append(CorridorStat(
-                corridor=record.get("corridor", "unknown"),
+                corridor=record.get("corridor") or "unknown",
                 total_reports=record.get("total_reports", 0),
                 avg_confidence=record.get("avg_confidence", 0.0),
                 unique_agencies=record.get("unique_agencies", 0),
@@ -44,7 +48,7 @@ async def get_dashboard_stats():
         result = es.esql.query(
             query=(
                 "FROM known-scams "
-                "| WHERE date_reported >= \"2025-01-01T00:00:00Z\" "
+                "| WHERE date_reported >= \"2025-01-01T00:00:00Z\" AND corridor IS NOT NULL "
                 "| EVAL month = DATE_TRUNC(1 month, date_reported) "
                 "| STATS report_count = COUNT(*), "
                 "  unique_categories = COUNT_DISTINCT(scam_category) "
@@ -58,7 +62,7 @@ async def get_dashboard_stats():
             record = dict(zip(cols, row))
             trending.append(TrendPoint(
                 month=str(record.get("month", "")),
-                corridor=record.get("corridor", "unknown"),
+                corridor=record.get("corridor") or "unknown",
                 report_count=record.get("report_count", 0),
                 unique_categories=record.get("unique_categories", 0),
             ))

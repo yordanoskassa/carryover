@@ -196,9 +196,8 @@ export default function Inspector() {
             <Button
               onClick={handleEvaluate}
               disabled={loading || !postText.trim()}
-              variant="destructive"
               size="sm"
-              className="h-7 text-xs px-2.5 bg-red-600 hover:bg-red-700"
+              className="h-7 text-xs px-2.5 bg-red-600 hover:bg-red-500 text-white"
             >
               {loading ? <CircleNotch size={12} className="animate-spin" /> : <MagnifyingGlass size={12} weight="bold" />}
               {loading ? 'Analyzing' : 'Evaluate'}
@@ -227,9 +226,8 @@ export default function Inspector() {
           <Button
             onClick={handleScan}
             disabled={loading || !handle.trim()}
-            variant="destructive"
             size="sm"
-            className="h-7 text-xs px-2.5 bg-red-600 hover:bg-red-700"
+            className="h-7 text-xs px-2.5 bg-red-600 hover:bg-red-500 text-white"
           >
             {loading ? <CircleNotch size={12} className="animate-spin" /> : <MagnifyingGlass size={12} weight="bold" />}
             {loading ? 'Scanning' : 'Scan'}
@@ -308,18 +306,18 @@ export default function Inspector() {
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-semibold">
                     {result.verdict === 'LOW' ? (
-                      <ShieldCheck size={14} weight="bold" className="text-emerald-600" />
+                      <ShieldCheck size={14} weight="bold" className="text-emerald-400" />
                     ) : (
-                      <ShieldWarning size={14} weight="bold" className="text-red-600" />
+                      <ShieldWarning size={14} weight="bold" className="text-red-400" />
                     )}
                     <span>{result.verdict} RISK</span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
-                      { label: 'Matches', value: result.matched_scams, color: 'text-orange-600' },
-                      { label: 'Conflicts', value: result.contradictions, color: 'text-red-600' },
-                      { label: 'ID reuse', value: result.identity_reuse_count, color: 'text-violet-600' },
+                      { label: 'Matches', value: result.matched_scams, color: 'text-orange-400' },
+                      { label: 'Conflicts', value: result.contradictions, color: 'text-red-400' },
+                      { label: 'ID reuse', value: result.identity_reuse_count, color: 'text-violet-400' },
                     ].map((stat) => (
                       <div key={stat.label} className="bg-muted rounded-md p-1.5 text-center">
                         <div className={`text-sm font-bold tabular-nums ${stat.color}`}>{stat.value}</div>
@@ -334,7 +332,7 @@ export default function Inspector() {
                       disabled={reported}
                       variant="outline"
                       size="sm"
-                      className="h-6 text-[11px] px-2 text-red-600 border-red-200 hover:bg-red-50"
+                      className="h-6 text-[11px] px-2 text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
                     >
                       <Flag size={10} weight="bold" />
                       {reported ? 'Reported' : 'Report scam'}

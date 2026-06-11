@@ -32,8 +32,6 @@ export interface DashboardStats {
 
 export default function Dashboard({ onStats, refreshKey = 0 }: { onStats?: (stats: DashboardStats) => void; refreshKey?: number }) {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [agencies, setAgencies] = useState<Record<string, unknown>[]>([]);
-  const [phones, setPhones] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = async () => {
@@ -45,8 +43,6 @@ export default function Dashboard({ onStats, refreshKey = 0 }: { onStats?: (stat
         getFlaggedPhones(),
       ]);
       setData(dash);
-      setAgencies(ag.agencies);
-      setPhones(ph.phones);
       onStats?.({
         scams: dash.total_scams_indexed,
         policies: dash.total_policies_indexed,
@@ -142,64 +138,8 @@ export default function Dashboard({ onStats, refreshKey = 0 }: { onStats?: (stat
         </div>
       </div>
 
-      {/* Tables row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="border rounded-lg p-3">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Flagged Agencies</span>
-          <div className="overflow-x-auto mt-1">
-            <table className="w-full">
-              <thead>
-                <tr className="text-muted-foreground text-[11px]">
-                  <th className="text-left py-1 font-medium">Agency</th>
-                  <th className="text-right py-1 font-medium">Rpts</th>
-                  <th className="text-right py-1 font-medium">Conf</th>
-                </tr>
-              </thead>
-              <tbody>
-                {agencies.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="text-center py-4 text-muted-foreground text-xs">None</td>
-                  </tr>
-                ) : agencies.slice(0, 5).map((a, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="py-1.5 text-xs truncate max-w-[120px]">{String(a.agency_name || 'Unknown')}</td>
-                    <td className="py-1.5 text-right text-orange-600 font-mono tabular-nums text-xs">{String(a.report_count || 0)}</td>
-                    <td className="py-1.5 text-right text-muted-foreground font-mono tabular-nums text-xs">{Number(a.avg_confidence || 0).toFixed(1)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="border rounded-lg p-3">
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Shared Phones</span>
-          <div className="overflow-x-auto mt-1">
-            <table className="w-full">
-              <thead>
-                <tr className="text-muted-foreground text-[11px]">
-                  <th className="text-left py-1 font-medium">Phone</th>
-                  <th className="text-right py-1 font-medium">Agencies</th>
-                  <th className="text-right py-1 font-medium">Posts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {phones.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="text-center py-4 text-muted-foreground text-xs">None</td>
-                  </tr>
-                ) : phones.slice(0, 5).map((p, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="py-1.5 font-mono tabular-nums text-xs truncate max-w-[100px]">{String(p.phone || 'N/A')}</td>
-                    <td className="py-1.5 text-right text-violet-600 font-mono tabular-nums text-xs">{String(p.agency_count || 0)}</td>
-                    <td className="py-1.5 text-right text-muted-foreground font-mono tabular-nums text-xs">{String(p.post_count || 0)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      {/* Flagged agencies + shared phones render in the FlaggedIntel section
+          below this card — not repeated here. */}
     </div>
   );
 }
