@@ -17,10 +17,13 @@ fall back to the record-copy inbox with the letter ready to file.
 """
 
 import html as html_mod
+import logging
 
 import httpx
 
 from app.config import get_settings
+
+logger = logging.getLogger("carryover.reporter")
 
 settings = get_settings()
 
@@ -197,6 +200,7 @@ async def send_email(
     REPORT_TO_EMAIL is then BCC'd as the sender's record copy.
     """
     if not email_configured():
+        logger.warning("send_email: RESEND_API_KEY is not set — returning draft")
         return {
             "channel": "draft",
             "delivered": False,
@@ -205,6 +209,10 @@ async def send_email(
 
     recipient = to or settings.report_to_email
     if not recipient:
+        logger.info(
+            "send_email: no recipient (authority email unresolved, "
+            "REPORT_TO_EMAIL unset) — returning draft"
+        )
         return {
             "channel": "draft",
             "delivered": False,
@@ -214,6 +222,13 @@ async def send_email(
                 "via the portal."
             ),
         }
+    logger.info(
+        "send_email: to=%s bcc=%s from=%s subject=%r",
+        recipient,
+        settings.report_to_email if (to and settings.report_to_email and to != settings.report_to_email) else "-",
+        settings.report_from_email,
+        subject[:80],
+    )
     payload = {
         "from": settings.report_from_email,
         "to": [recipient],
@@ -235,9 +250,11 @@ async def send_email(
                 json=payload,
             )
         if res.status_code >= 400:
+            logger.warning("send_email: Resend rejected (%s): %s", res.status_code, res.text[:300])
             return {"channel": "email", "delivered": False,
                     "detail": f"Resend error {res.status_code}: {res.text[:160]}"}
         msg_id = res.json().get("id", "")
+        logger.info("send_email: delivered to %s (message_id=%s)", recipient, msg_id)
         return {
             "channel": "email",
             "delivered": True,
@@ -246,4 +263,5 @@ async def send_email(
             "detail": f"Complaint emailed to {recipient}.",
         }
     except Exception as e:  # network / DNS / timeout — stay graceful
+        logger.exception("send_email: send failed")
         return {"channel": "email", "delivered": False, "detail": f"Send failed: {e}"}

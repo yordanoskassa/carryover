@@ -354,17 +354,29 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
   );
 }
 
+// What the orchestrator is actually doing while we wait for /kibo/chat —
+// narrated progressively so the wait never reads as one opaque spinner.
+const PENDING_STEPS = [
+  'Reading the question and the corridor context…',
+  'Routing to specialists with Gemini…',
+  'Specialists querying Elasticsearch — ELSER semantic search + ES|QL…',
+  'Still working — live Telegram pulls and grounded lookups take a moment…',
+];
+const PENDING_DELAYS = [1300, 4200, 14000];
+
 const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
   { nationality, destination, purpose, onInvestigation, onBusyChange, onContextChange, onAgentRoute }, ref,
 ) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [workingAgents, setWorkingAgents] = useState<KiboAgentId[]>([]);
+  // Index of the pre-response step currently "working"; null once events replay.
+  const [pendingIdx, setPendingIdx] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [items, workingAgents]);
+  }, [items, workingAgents, pendingIdx]);
 
   useImperativeHandle(ref, () => ({ ask: (q: string) => { void send(q); } }));
 
@@ -375,9 +387,15 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
     setItems((prev) => [...prev, { kind: 'user', content: q }]);
     setLoading(true);
     onBusyChange?.(true);
+    setPendingIdx(0);
+    const pendingTimers = PENDING_DELAYS.map((d, i) =>
+      window.setTimeout(() => setPendingIdx((s) => (s === null ? s : Math.max(s, i + 1))), d),
+    );
 
     try {
       const res = await kiboChat(q, { nationality, destination, purpose });
+      pendingTimers.forEach(clearTimeout);
+      setPendingIdx(null);
       for (const event of res.events) {
         if (event.kind === 'handoff') {
           setWorkingAgents(event.agents);
@@ -416,6 +434,8 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
         engine: 'elastic-fallback',
       }]);
     } finally {
+      pendingTimers.forEach(clearTimeout);
+      setPendingIdx(null);
       setWorkingAgents([]);
       setLoading(false);
       onBusyChange?.(false);
@@ -542,20 +562,34 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
           }
           return null;
         })}
-        {loading && workingAgents.length > 0 && (
+        {loading && pendingIdx !== null && (
+          <div className="space-y-1.5 py-0.5">
+            {PENDING_STEPS.slice(0, pendingIdx + 1).map((step, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-start gap-1.5 text-[11px] leading-snug"
+              >
+                {i < pendingIdx ? (
+                  <CheckCircle size={12} weight="fill" className="text-emerald-400 mt-px shrink-0" />
+                ) : (
+                  <CircleNotch size={12} className="animate-spin text-primary mt-px shrink-0" />
+                )}
+                <span className={i < pendingIdx ? 'text-muted-foreground' : 'text-foreground/90'}>
+                  <span className="font-semibold text-primary">Kibo</span> · {step}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        )}
+        {loading && pendingIdx === null && workingAgents.length > 0 && (
           <div className="flex justify-start">
             <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground flex items-center gap-1.5">
               <CircleNotch size={12} className="animate-spin" />
               {workingAgents.map((a) => AGENT_META[a].name).join(' and ')} working
               <ArrowRight size={10} className="opacity-50" />
               searching Elastic
-            </div>
-          </div>
-        )}
-        {loading && workingAgents.length === 0 && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground flex items-center gap-1.5">
-              <CircleNotch size={12} className="animate-spin" /> Kibo is routing...
             </div>
           </div>
         )}

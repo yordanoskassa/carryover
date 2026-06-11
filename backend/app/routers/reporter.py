@@ -13,6 +13,7 @@ It's a one-click, user-confirmed action — Kibo only *proposes* it; nothing is
 filed or sent until the user taps the button.
 """
 
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter
@@ -25,6 +26,7 @@ from app.services.elastic import es, find_official_contact_email
 from app.services import gemini, notify
 
 router = APIRouter(prefix="/api/reporter", tags=["reporter"])
+logger = logging.getLogger("carryover.reporter")
 
 
 def _category(verdict: str, post: str) -> str:
@@ -166,6 +168,11 @@ async def file_report(req: ReporterFileRequest):
             req.destination or "", authority["name"],
         )
         email_source = "Gemini grounded search"
+    logger.info(
+        "file_report: corridor=%s authority=%r email=%s (%s) warning_doc=%s",
+        req.corridor, authority["name"], authority_email or "-",
+        email_source if authority_email else "unresolved", doc_id or "-",
+    )
     delivery_raw = await notify.send_email(
         to=authority_email or None,
         subject=subject,

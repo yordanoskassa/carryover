@@ -92,6 +92,46 @@ const verdictColor = (verdict: string) =>
     : verdict === 'MEDIUM' ? 'text-amber-400'
     : 'text-red-400';
 
+// The Inspector's actual pipeline per mode, narrated step by step while the
+// request runs — same visible-multistep treatment as the Kibo chat traces.
+const SCAN_STEPS = [
+  'Resolving the handle on Telegram and pulling its public posts…',
+  'Indexing every readable post into agency-posts (Elasticsearch)…',
+  'Scoring each post with Gemini + ELSER against 1,350+ known scams…',
+  'Extracting phone numbers and checking reuse across agencies (ES|QL)…',
+];
+const EVAL_STEPS = [
+  'Matching the claim against known scams — ELSER semantic search…',
+  'Comparing each claim with the official policy for this corridor…',
+  'Checking phone/handle reuse across flagged agencies (ES|QL)…',
+  'Calibrating the final risk score with Gemini…',
+];
+const STEP_DELAYS = [2500, 7000, 13000];
+
+function StepTrace({ steps, idx }: { steps: string[]; idx: number }) {
+  return (
+    <div className="space-y-1.5 py-1.5">
+      {steps.slice(0, idx + 1).map((step, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: -4 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-start gap-1.5 text-[11px] leading-snug"
+        >
+          {i < idx ? (
+            <ShieldCheck size={12} weight="fill" className="text-emerald-400 mt-px shrink-0" />
+          ) : (
+            <CircleNotch size={12} className="animate-spin text-red-400 mt-px shrink-0" />
+          )}
+          <span className={i < idx ? 'text-muted-foreground' : 'text-foreground/90'}>
+            <span className="font-semibold text-red-400">Inspector</span> · {step}
+          </span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 export default function Inspector() {
   const [mode, setMode] = useState<'post' | 'handle'>('handle');
   const [postText, setPostText] = useState('');
@@ -99,10 +139,18 @@ export default function Inspector() {
   const [handle, setHandle] = useState('');
   const [corridor, setCorridor] = useState('');
   const [loading, setLoading] = useState(false);
+  const [stepIdx, setStepIdx] = useState(0);
   const [result, setResult] = useState<InspectorResponse | null>(null);
   const [scan, setScan] = useState<ScanAgencyResponse | null>(null);
   const [reported, setReported] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const startTrace = () => {
+    setStepIdx(0);
+    return STEP_DELAYS.map((d, i) =>
+      window.setTimeout(() => setStepIdx((s) => Math.max(s, i + 1)), d),
+    );
+  };
 
   const handleEvaluate = async () => {
     if (!postText.trim()) return;
@@ -110,12 +158,14 @@ export default function Inspector() {
     setError(null);
     setReported(false);
     setScan(null);
+    const timers = startTrace();
     try {
       const data = await evaluateAgency(postText, agencyName || undefined, corridor || undefined);
       setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Evaluation failed');
     } finally {
+      timers.forEach(clearTimeout);
       setLoading(false);
     }
   };
@@ -126,6 +176,7 @@ export default function Inspector() {
     setError(null);
     setResult(null);
     setScan(null);
+    const timers = startTrace();
     try {
       const data = await scanAgency(handle, corridor || undefined);
       setScan(data);
@@ -133,6 +184,7 @@ export default function Inspector() {
       const msg = err instanceof Error ? err.message : 'Scan failed';
       setError(msg.includes('404') ? 'No public posts found — channel may be private or the handle is wrong.' : msg);
     } finally {
+      timers.forEach(clearTimeout);
       setLoading(false);
     }
   };
@@ -258,6 +310,8 @@ export default function Inspector() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {loading && <StepTrace steps={mode === 'handle' ? SCAN_STEPS : EVAL_STEPS} idx={stepIdx} />}
 
       <div className="flex-1 overflow-y-auto min-h-0" style={{ maxHeight: '280px' }}>
         <AnimatePresence>

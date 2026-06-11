@@ -1,8 +1,17 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import advisor, inspector, dashboard, ingest, kibo, elastic_info, news, reporter
 from app.services import agent_builder
+
+# App loggers (carryover.*) print at INFO so the Reporter's email path and
+# other agent actions are visible in uvicorn / EasyPanel logs.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
 
 settings = get_settings()
 
