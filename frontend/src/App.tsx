@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt } from '@phosphor-icons/react';
+import { useState, useEffect, useRef } from 'react';
+import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch } from '@phosphor-icons/react';
 
 function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
@@ -22,7 +22,7 @@ import Advisor from './components/Advisor';
 import Inspector from './components/Inspector';
 import Dashboard, { type DashboardStats } from './components/Dashboard';
 import VisaOverview from './components/VisaOverview';
-import Kibo from './components/Kibo';
+import Kibo, { type KiboHandle } from './components/Kibo';
 import AgencyInvestigation from './components/AgencyInvestigation';
 import PolicyCard from './components/PolicyCard';
 import ElasticData from './components/ElasticData';
@@ -90,6 +90,21 @@ export default function App() {
   const [investigation, setInvestigation] = useState<ScanAgencyResponse | null>(null);
   const [dashRefresh, setDashRefresh] = useState(0);
 
+  // Kibo command bar (floating, bottom-center) — the sidebar is output-only.
+  const kiboRef = useRef<KiboHandle>(null);
+  const [kiboInput, setKiboInput] = useState('');
+  const [kiboBusy, setKiboBusy] = useState(false);
+  const [kiboStarted, setKiboStarted] = useState(false);
+
+  const askKibo = (q?: string) => {
+    const question = (q ?? kiboInput).trim();
+    if (!question || kiboBusy) return;
+    setKiboStarted(true);
+    setKiboInput('');
+    // Defer one tick so the sidebar (and Kibo's ref) mounts on first prompt.
+    setTimeout(() => kiboRef.current?.ask(question), 50);
+  };
+
   const handleInvestigation = (data: ScanAgencyResponse) => {
     setInvestigation(data);
     setActiveTab('agency');
@@ -142,7 +157,7 @@ export default function App() {
   });
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden relative">
       {/* ── Header ── */}
       <header className="border-b shrink-0 z-50">
         <div className="mx-auto px-5 h-11 flex items-center justify-between">
@@ -519,15 +534,67 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Kibo: full-height right sidebar ── */}
-        <aside className="w-[420px] xl:w-[480px] border-l shrink-0 flex flex-col">
-          <Kibo
-            nationality={nationality}
-            destination={selectedDest}
-            purpose={detailPurpose}
-            onInvestigation={handleInvestigation}
+        {/* ── Kibo: output-only side panel, appears once a conversation starts ── */}
+        {kiboStarted && (
+          <aside className="w-[420px] xl:w-[480px] border-l shrink-0 flex flex-col">
+            <Kibo
+              ref={kiboRef}
+              nationality={nationality}
+              destination={selectedDest}
+              purpose={detailPurpose}
+              onInvestigation={handleInvestigation}
+              onBusyChange={setKiboBusy}
+            />
+          </aside>
+        )}
+      </div>
+
+      {/* ── Kibo command bar: floating, bottom-center of the app ── */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 w-[min(720px,calc(100%-3rem))] flex flex-col items-center gap-2.5 pointer-events-none">
+        {!kiboStarted && (
+          <div className="flex flex-wrap gap-2 justify-center pointer-events-auto">
+            {[
+              'What do I need for a UK student visa?',
+              'Check @gloryconsultancy',
+              'Is a guaranteed 5-day visa real?',
+            ].map((s) => (
+              <button
+                key={s}
+                onClick={() => askKibo(s)}
+                className="text-[11px] px-3 py-1.5 rounded-full border border-border bg-background/85 backdrop-blur text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shadow-sm"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+        <form
+          onSubmit={(e) => { e.preventDefault(); askKibo(); }}
+          className="w-full flex items-center gap-2 rounded-2xl border bg-card/95 backdrop-blur px-3 py-2 shadow-2xl pointer-events-auto"
+        >
+          <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+            {kiboBusy
+              ? <CircleNotch size={14} className="text-primary animate-spin" />
+              : <Sparkle size={14} weight="fill" className="text-primary" />}
+          </div>
+          <input
+            value={kiboInput}
+            onChange={(e) => setKiboInput(e.target.value)}
+            placeholder={kiboBusy ? 'Kibo is working...' : 'Ask Kibo anything, or drop an @agency handle...'}
+            disabled={kiboBusy}
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
-        </aside>
+          <span className="text-[9px] text-muted-foreground font-mono hidden sm:inline shrink-0">
+            {nationality}→{selectedDest} · {detailPurpose}
+          </span>
+          <button
+            type="submit"
+            disabled={kiboBusy || !kiboInput.trim()}
+            className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
+          >
+            <PaperPlaneRight size={14} weight="bold" />
+          </button>
+        </form>
       </div>
     </div>
   );
