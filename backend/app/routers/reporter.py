@@ -21,7 +21,7 @@ from app.models.schemas import (
     ReporterFileRequest, ReporterFileResponse,
     ComplaintDraft, DeliveryStatus,
 )
-from app.services.elastic import es
+from app.services.elastic import es, find_official_contact_email
 from app.services import gemini, notify
 
 router = APIRouter(prefix="/api/reporter", tags=["reporter"])
@@ -149,13 +149,23 @@ async def file_report(req: ReporterFileRequest):
     )
 
     # ── 3. Actually send it through the outbound channel ──────────────────
-    # Recipient resolution: the authority's known reporting inbox, else a
-    # Gemini grounded lookup of the officially published address. Portal-only
-    # authorities (no public email) fall back to the record-copy inbox, with
+    # Recipient resolution: the authority's known reporting inbox, else an
+    # official contact email mined from the crawled government pages in
+    # Elasticsearch, else a Gemini grounded lookup. Portal-only authorities
+    # (no public email anywhere) fall back to the record-copy inbox, with
     # the letter ready to file through their portal.
-    authority_email = authority.get("email") or await gemini.find_authority_email(
-        req.destination or "", authority["name"],
-    )
+    email_source = "official directory"
+    authority_email = authority.get("email")
+    if not authority_email:
+        mined = find_official_contact_email(req.destination or "")
+        if mined:
+            authority_email = mined["email"]
+            email_source = f"found on {mined['source_host']} (crawled into Elastic)"
+    if not authority_email:
+        authority_email = await gemini.find_authority_email(
+            req.destination or "", authority["name"],
+        )
+        email_source = "Gemini grounded search"
     delivery_raw = await notify.send_email(
         to=authority_email or None,
         subject=subject,
@@ -188,7 +198,10 @@ async def file_report(req: ReporterFileRequest):
     if filed:
         bits.append("filed a community warning to Elastic (future checks will flag it)")
     if delivery.delivered and authority_email:
-        bits.append(f"sent the complaint directly to {authority['name']} ({authority_email})")
+        bits.append(
+            f"sent the complaint directly to {authority['name']} "
+            f"({authority_email} — {email_source})"
+        )
     elif delivery.delivered:
         bits.append(f"sent a formal complaint addressed to {authority['name']}")
     else:

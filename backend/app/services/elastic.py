@@ -195,3 +195,101 @@ def _semantic_field(index: str) -> str:
 def _build_filters(filters: dict) -> list:
     """Convert a dict of field:value into ES term filters."""
     return [{"term": {k: v}} for k, v in filters.items()]
+
+
+# ---------------------------------------------------------------------------
+# Contact discovery — official emails published in the crawled pages
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+# Official immigration-authority hosts present in crawled-visa-pages, and the
+# email domains accepted as "officially published" for each destination.
+OFFICIAL_SOURCES: dict[str, dict[str, list[str]]] = {
+    # gov.uk hosts every UK department — only Home Office / UKVI addresses
+    # are the right desk for visa fraud.
+    "GB": {"hosts": ["www.gov.uk"], "domains": ["homeoffice.gov.uk", "ukvi.gov.uk"]},
+    "US": {"hosts": ["travel.state.gov"], "domains": ["state.gov"]},
+    "CA": {"hosts": ["www.canada.ca"], "domains": ["canada.ca", "cic.gc.ca", "gc.ca"]},
+    "IE": {"hosts": ["www.irishimmigration.ie"], "domains": ["irishimmigration.ie", "justice.ie"]},
+    "NO": {"hosts": ["www.udi.no"], "domains": ["udi.no"]},
+    "FI": {"hosts": ["migri.fi"], "domains": ["migri.fi"]},
+    "SE": {"hosts": ["www.migrationsverket.se"], "domains": ["migrationsverket.se"]},
+    "DK": {"hosts": ["www.nyidanmark.dk"], "domains": ["nyidanmark.dk", "us.dk", "siri.dk"]},
+    "DE": {"hosts": ["www.auswaertiges-amt.de"], "domains": ["auswaertiges-amt.de", "diplo.de"]},
+    "CH": {"hosts": ["www.sem.admin.ch"], "domains": ["sem.admin.ch", "admin.ch"]},
+    "AT": {"hosts": ["www.migration.gv.at"], "domains": ["migration.gv.at", "gv.at"]},
+    "BE": {"hosts": ["dofi.ibz.be"], "domains": ["ibz.be"]},
+    "CZ": {"hosts": ["mzv.gov.cz"], "domains": ["mzv.gov.cz", "gov.cz"]},
+    "GR": {"hosts": ["migration.gov.gr"], "domains": ["migration.gov.gr", "gov.gr"]},
+    "PT": {"hosts": ["vistos.mne.gov.pt"], "domains": ["mne.gov.pt", "gov.pt"]},
+    "SG": {"hosts": ["www.ica.gov.sg"], "domains": ["ica.gov.sg", "gov.sg"]},
+    "TR": {"hosts": ["www.mfa.gov.tr", "www.evisa.gov.tr"], "domains": ["mfa.gov.tr", "gov.tr"]},
+    "SA": {"hosts": ["www.mofa.gov.sa", "www.visitsaudi.com"], "domains": ["mofa.gov.sa", "gov.sa"]},
+    "AE": {"hosts": ["icp.gov.ae"], "domains": ["icp.gov.ae", "gov.ae"]},
+    "QA": {"hosts": ["visitqatar.com"], "domains": ["visitqatar.com", "gov.qa"]},
+}
+
+_EMAIL_RE = _re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_EMAIL_JUNK = _re.compile(
+    r"noreply|no-reply|donotreply|webmaster|postmaster|abuse|privacy|press|news"
+    r"|firstname|lastname|example|sentry|\.png|\.jpg|\.gif",
+    _re.IGNORECASE,
+)
+_LOCAL_HINTS = _re.compile(
+    r"visa|immigra|migrat|consul|embassy|info|contact|enquir|inquir|report|fraud|help|support",
+    _re.IGNORECASE,
+)
+
+
+def find_official_contact_email(destination: str) -> dict | None:
+    """Best officially-published contact email for a destination, mined from
+    the government pages the Open Crawler indexed into crawled-visa-pages.
+
+    Returns {"email", "source_host"} or None. Heuristic scoring: the address
+    must sit on the authority's own domain; service-desk style local parts
+    (visa/info/contact/...) and cross-page frequency win over one-off
+    addresses like a press desk.
+    """
+    src = OFFICIAL_SOURCES.get((destination or "").strip().upper())
+    if not src:
+        return None
+    try:
+        res = es.search(
+            index="crawled-visa-pages",
+            size=80,
+            query={
+                "bool": {
+                    "filter": [{"terms": {"url_host": src["hosts"]}}],
+                    "should": [{"match": {"body": "email contact enquiries"}}],
+                }
+            },
+            _source=["body", "url_host"],
+        )
+    except Exception:
+        return None
+
+    scores: dict[str, float] = {}
+    for hit in res.get("hits", {}).get("hits", []):
+        body = hit["_source"].get("body") or ""
+        for addr in set(_EMAIL_RE.findall(body)):
+            addr = addr.lower().strip(".")
+            if _EMAIL_JUNK.search(addr):
+                continue
+            local, _, domain = addr.partition("@")
+            if not any(domain == d or domain.endswith("." + d) for d in src["domains"]):
+                continue
+            s = scores.get(addr, 0.0) + 1.0           # cross-page frequency
+            if addr not in scores:
+                if _LOCAL_HINTS.search(local):
+                    s += 20.0                          # service-desk local part
+                if local == domain.split(".")[0]:
+                    s += 10.0                          # main inbox (migri@migri.fi)
+            scores[addr] = s
+
+    if not scores:
+        return None
+    best, score = max(scores.items(), key=lambda kv: kv[1])
+    if score < 10:                                     # press desks, one-offs
+        return None
+    return {"email": best, "source_host": src["hosts"][0]}
