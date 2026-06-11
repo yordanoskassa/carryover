@@ -117,6 +117,23 @@ def _detect_country(q: str, exclude: set[str]) -> str | None:
     return None
 
 
+# Purpose named in the question ("how about a work visa") → purpose switch.
+_PURPOSE_HINTS: dict[str, str] = {
+    r"\b(work|job|employ|skilled|labou?r) (visa|permit)\b|\bwork(ing)? visa\b": "work",
+    r"\bstud(y|ent|ies)\b|\buniversity\b|\bcollege\b": "student",
+    r"\b(family|spouse|marriage|partner|dependant|dependent) (visa|permit|reunif)": "family",
+    r"\b(tourist|tourism|visit(or)?|holiday|vacation) (visa|trip)?\b": "tourist",
+}
+
+
+def _detect_purpose(q: str, current: str) -> str | None:
+    """Purpose named in the question that differs from the current context."""
+    for pat, purpose in _PURPOSE_HINTS.items():
+        if purpose != current and re.search(pat, q, re.IGNORECASE):
+            return purpose
+    return None
+
+
 def _heuristic_route(req: KiboChatRequest) -> dict:
     """Keyword fallback router used when Gemini is unavailable."""
     q = req.question
@@ -145,6 +162,7 @@ def _heuristic_route(req: KiboChatRequest) -> dict:
         # destination; the heuristic takes the common case).
         "destination_code": _detect_country(q, {req.nationality, req.destination}),
         "nationality_code": None,
+        "purpose": _detect_purpose(q, req.purpose),
     }
 
 
@@ -318,13 +336,23 @@ async def kibo_chat(req: KiboChatRequest):
         plan = _heuristic_route(req)
     agents = [a for a in plan.get("agents", []) if a in ("inspector", "advisor")] or ["advisor"]
 
-    # The question may switch corridors ("what about the US?") — the specialists
-    # run against the new corridor and the UI gets a context event to follow.
+    # The question may switch corridors ("what about the US?") or purpose
+    # ("how about a work visa") — the specialists run against the new context
+    # and the UI gets a context event to follow.
     new_dest = (plan.get("destination_code") or "").strip().upper() or req.destination
     new_nat = (plan.get("nationality_code") or "").strip().upper() or req.nationality
-    context_changed = new_dest != req.destination or new_nat != req.nationality
+    new_purpose = (plan.get("purpose") or "").strip().lower()
+    if new_purpose not in ("student", "work", "family", "tourist"):
+        new_purpose = _detect_purpose(req.question, req.purpose) or req.purpose
+    context_changed = (
+        new_dest != req.destination
+        or new_nat != req.nationality
+        or new_purpose != req.purpose
+    )
     if context_changed:
-        req = req.model_copy(update={"destination": new_dest, "nationality": new_nat})
+        req = req.model_copy(update={
+            "destination": new_dest, "nationality": new_nat, "purpose": new_purpose,
+        })
 
     events: list[dict] = [{
         "kind": "handoff",
@@ -337,6 +365,7 @@ async def kibo_chat(req: KiboChatRequest):
             "kind": "context",
             "nationality": req.nationality,
             "destination": req.destination,
+            "purpose": req.purpose,
         })
 
     tasks = {}

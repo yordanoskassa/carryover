@@ -296,12 +296,14 @@ export interface KiboActionPromptEvent {
   payload: ReporterPayload;
 }
 
-// Kibo detected a corridor switch in the question (e.g. "what about the US?")
-// — the UI follows by updating its nationality/destination selection.
+// Kibo detected a corridor or purpose switch in the question (e.g. "what
+// about the US?", "how about a work visa") — the UI follows by updating its
+// nationality/destination/purpose selection.
 export interface KiboContextEvent {
   kind: 'context';
   nationality: string;
   destination: string;
+  purpose?: string;
 }
 
 // A narrated unit of agent work ("Searching visa-policies with ELSER…") the

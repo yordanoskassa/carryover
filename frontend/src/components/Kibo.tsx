@@ -18,7 +18,7 @@ interface KiboProps {
   purpose: string;
   onInvestigation?: (data: ScanAgencyResponse) => void;
   onBusyChange?: (busy: boolean) => void;
-  onContextChange?: (ctx: { nationality: string; destination: string }) => void;
+  onContextChange?: (ctx: { nationality: string; destination: string; purpose?: string }) => void;
   onAgentRoute?: (agents: KiboAgentId[]) => void;
 }
 
@@ -349,8 +349,8 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
           setWorkingAgents((prev) => prev.filter((a) => a !== event.agent));
           await delay(450);
         } else if (event.kind === 'context') {
-          // Kibo noticed the question switched corridors — the whole app follows.
-          onContextChange?.({ nationality: event.nationality, destination: event.destination });
+          // Kibo noticed the question switched corridors/purpose — the whole app follows.
+          onContextChange?.({ nationality: event.nationality, destination: event.destination, purpose: event.purpose });
           setItems((prev) => [...prev, event]);
           await delay(350);
         } else if (event.kind === 'scan_result') {
@@ -471,7 +471,8 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
               >
                 <ShareNetwork size={13} weight="bold" />
                 <span className="font-medium">
-                  Corridor switched to {item.nationality} → {item.destination}
+                  Context switched to {item.nationality} → {item.destination}
+                  {item.purpose ? ` · ${item.purpose}` : ''}
                 </span>
                 <span className="text-muted-foreground">dashboard updated</span>
               </motion.div>

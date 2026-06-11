@@ -138,11 +138,15 @@ export default function App() {
     setDashRefresh((k) => k + 1); // scan indexed new posts → re-pull dashboard
   };
 
-  // Kibo noticed the question switched corridors ("what about the US?") —
-  // the dashboard follows. Only apply codes the UI actually knows.
-  const handleContextChange = (ctx: { nationality: string; destination: string }) => {
+  // Kibo noticed the question switched corridors ("what about the US?") or
+  // purpose ("how about a work visa") — the dashboard follows. Only apply
+  // values the UI actually knows.
+  const handleContextChange = (ctx: { nationality: string; destination: string; purpose?: string }) => {
     if (DESTINATIONS[ctx.destination]) setSelectedDest(ctx.destination);
     if (COUNTRIES.some((c) => c.code === ctx.nationality)) setNationality(ctx.nationality);
+    if (ctx.purpose && ['student', 'work', 'family', 'tourist'].includes(ctx.purpose)) {
+      setDetailPurpose(ctx.purpose);
+    }
   };
 
   // Kibo's routing drives the main view: an Inspector question lands on the
