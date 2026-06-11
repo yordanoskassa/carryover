@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import {
-  CurrencyDollar, Clock, LinkSimple, CircleNotch, Sparkle,
+  LinkSimple, CircleNotch, Sparkle,
   CheckCircle, FileText, ListNumbers,
 } from '@phosphor-icons/react';
 import type { StructuredPolicy } from '../api';
@@ -39,35 +39,18 @@ export default function PolicyCard({
         )}
       </div>
 
-      {/* Stat row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border border-b">
-        <div className="px-3 py-2 flex items-center gap-1.5">
-          <CurrencyDollar size={14} className="text-primary shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[10px] font-mono text-muted-foreground uppercase">Fee</div>
-            <div className="text-xs font-bold tabular-nums truncate">{policy.fee || 'Varies'}</div>
-          </div>
-        </div>
-        <div className="px-3 py-2 flex items-center gap-1.5">
-          <Clock size={14} className="text-primary shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[10px] font-mono text-muted-foreground uppercase">Processing</div>
-            <div className="text-xs font-bold truncate">{policy.processing_time || 'Varies'}</div>
-          </div>
-        </div>
-        <div className="px-3 py-2 flex items-center gap-1.5">
-          <LinkSimple size={14} className="text-primary shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[10px] font-mono text-muted-foreground uppercase">Source</div>
-            {policy.source_url ? (
-              <a href={policy.source_url} target="_blank" rel="noopener" className="text-xs text-primary hover:underline truncate block">
-                {policy.source_name || 'Official'}
-              </a>
-            ) : (
-              <div className="text-xs text-muted-foreground truncate">{policy.source_name || 'N/A'}</div>
-            )}
-          </div>
-        </div>
+      {/* Source row — fee & processing live in the country stats grid above,
+          so the card only adds what's unique: where this policy comes from. */}
+      <div className="px-4 py-2 border-b flex items-center gap-1.5 min-w-0">
+        <LinkSimple size={14} className="text-primary shrink-0" />
+        <span className="text-[10px] font-mono text-muted-foreground uppercase shrink-0">Source</span>
+        {policy.source_url ? (
+          <a href={policy.source_url} target="_blank" rel="noopener" className="text-xs text-primary hover:underline truncate">
+            {policy.source_name || 'Official'}
+          </a>
+        ) : (
+          <span className="text-xs text-muted-foreground truncate">{policy.source_name || 'N/A'}</span>
+        )}
       </div>
 
       <div className="px-4 py-3 space-y-3">

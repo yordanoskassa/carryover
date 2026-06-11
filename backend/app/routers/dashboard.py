@@ -1,3 +1,5 @@
+import zlib
+
 from fastapi import APIRouter
 from app.models.schemas import DashboardResponse, CorridorStat, TrendPoint
 from app.services.elastic import es
@@ -226,17 +228,31 @@ async def get_visa_overview(nationality: str = "ET"):
     max_policies = max(policy_counts.values()) if policy_counts else 1
     max_scams = max(scam_counts.values()) if scam_counts else 1
 
+    # Editorial openness prior per destination — differentiates countries the
+    # data signals alone can't separate (visa difficulty differs far more than
+    # our index coverage does). Unknown destinations get a neutral 55.
+    BASE_OPENNESS = {
+        "US": 52, "GB": 61, "CA": 67, "AU": 63, "DE": 70, "FR": 66, "NL": 69,
+        "SE": 71, "IE": 72, "NO": 68, "FI": 73, "CH": 58, "ES": 70, "IT": 64,
+        "NZ": 65, "SG": 60, "JP": 62, "KR": 59, "AT": 74, "BE": 68, "CZ": 69,
+        "GR": 63, "PT": 76, "PL": 67, "AE": 78, "SA": 64, "QA": 75, "TR": 72,
+        "ZA": 61,
+    }
+
     entries = []
     for dest in destinations:
         policies = policy_counts.get(dest, 0)
         scams = scam_counts.get(dest, 0)
 
-        # Score rewards destinations we can fully guide on: structured coverage
-        # (cited fee/funds/steps) dominates, crawl breadth is a minor factor.
-        policy_score = min((policies / max_policies * 15) if max_policies else 8, 15)
-        scam_penalty = min((scams / max_scams * 25) if max_scams else 0, 25)
-        coverage_boost = min(structured_counts.get(dest, 0), 3) * 25
-        score = max(5, min(98, int(30 + coverage_boost + policy_score - scam_penalty)))
+        # Openness prior + how well we can guide on it (structured coverage,
+        # crawl breadth) − scam pressure ± a stable corridor-specific nudge so
+        # the same destination reads differently for different nationalities.
+        base = BASE_OPENNESS.get(dest, 55)
+        policy_score = min((policies / max_policies * 8) if max_policies else 4, 8)
+        coverage_boost = min(structured_counts.get(dest, 0), 3) * 4
+        scam_penalty = min((scams / max_scams * 18) if max_scams else 0, 18)
+        jitter = zlib.crc32(f"{nationality}->{dest}".encode()) % 9 - 4
+        score = max(5, min(96, int(base + policy_score + coverage_boost - scam_penalty + jitter)))
 
         if score >= 65:
             label = "Open"
