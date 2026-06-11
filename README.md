@@ -27,34 +27,60 @@ Carryover runs a team of AI agents, orchestrated by **Kibo**:
 ## Architecture
 
 ```mermaid
-flowchart LR
-    user([User]) --> fe["React + Vite frontend\n(nginx)"]
-    fe -- "/api/*" --> api["FastAPI backend"]
+flowchart TB
+    user([User]) --> fe["React frontend"]
+    fe -- "/api/*" --> kibo{"Kibo — orchestrator\nGemini routes · synthesizes"}
 
-    subgraph orch ["Kibo — orchestrator"]
-        api --> kibo{"Gemini router"}
-        kibo --> advisor["Advisor\nofficial visa policy"]
-        kibo --> inspector["Inspector\nfraud detection"]
-        kibo --> reporter["Reporter\nwarnings + complaints"]
+    kibo --> advisor["Advisor agent\nofficial visa policy"]
+    kibo --> inspector["Inspector agent\nfraud detection"]
+    kibo --> reporter["Reporter agent\nfiles warnings + complaints"]
+
+    subgraph elastic ["⚡ Elastic Cloud"]
+        direction TB
+        subgraph tools ["Agent Builder tools"]
+            t1["advisor.visa_policy_search\nELSER semantic search"]
+            t2["advisor.policy_lookup\nES&#124;QL per-corridor stats"]
+            t3["inspector.scam_pattern_match\nELSER similarity vs known scams"]
+            t4["inspector.identity_reuse\nES&#124;QL phone/handle reuse"]
+        end
+        subgraph idx ["Indices"]
+            i1[("visa-policies\nsemantic_text + ELSER")]
+            i2[("known-scams\nsemantic_text + ELSER")]
+            i3[("agency-posts\nlive Telegram scans")]
+            i4[("crawled-visa-pages\n5,100+ official gov pages")]
+        end
+        t1 --> i1
+        t2 --> i1
+        t3 --> i2
+        t4 --> i3
     end
 
-    advisor -- "ELSER semantic search" --> es[("Elasticsearch\nvisa-policies · known-scams\nagency-posts · structured-policies")]
-    inspector -- "ELSER + ES&#124;QL identity reuse" --> es
-    reporter -- "community write-back" --> es
-    reporter -- "complaint email" --> resend["Resend"]
-    kibo <--> gemini["Gemini\nrouting · synthesis · grounding"]
+    advisor --> t1
+    advisor --> t2
+    inspector --> t3
+    inspector --> t4
+    reporter -- "community warning write-back" --> i2
+    reporter -- "mines authority contact email" --> i4
 
-    subgraph ingest ["Ingestion"]
-        crawler["Elastic Open Crawler\n(official gov sites)"] --> es
-        telegram["Telegram agency channels"] --> es
-        cfpb["CFPB fraud database"] --> es
-        firecrawl["Firecrawl\n(news + enrichment)"] --> es
+    kibo <--> gemini["Gemini\nrouting · synthesis\ngrounded search · post rating"]
+    reporter -- "complaint email\n(case ref + evidence)" --> resend["Resend"]
+
+    subgraph ingest ["Ingestion → Elastic"]
+        crawler["Elastic Open Crawler\n20 immigration authorities"] --> i4
+        crawler --> i1
+        telegram["Telegram agency channels"] --> i3
+        cfpb["CFPB fraud database"] --> i2
+        firecrawl["Firecrawl news"] --> i1
     end
 ```
 
-Every chat turn flows **frontend → Kibo → Gemini routing → specialist agents →
-Elasticsearch → Gemini synthesis**, and confirmed scams are written back into
-Elasticsearch so the next check is smarter.
+Elasticsearch is the system of record and the agents' entire toolset: every
+agent action is an **ELSER** semantic query, an **ES|QL** aggregation, or an
+index write-back — the same Agent Builder tools are exposed over MCP. **Gemini**
+is the brain on top (routing, synthesis, grounded lookups, per-post fraud
+rating), and **Resend** is the Reporter's outbound channel for delivering the
+complaint email. Confirmed scams are written back into `known-scams`, so every
+report makes the next check smarter.
 
 ## How it uses the partner tech
 
