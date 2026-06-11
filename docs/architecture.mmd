@@ -1,0 +1,52 @@
+flowchart TB
+    user([User]) --> fe["React frontend"]
+    fe -- "/api/*" --> kibo{"Kibo — orchestrator<br/>Gemini routes · synthesizes"}
+
+    kibo --> advisor["Advisor agent<br/>official visa policy"]
+    kibo --> inspector["Inspector agent<br/>fraud detection"]
+    kibo --> reporter["Reporter agent<br/>files warnings + complaints"]
+
+    subgraph elastic ["Elastic Cloud"]
+        direction TB
+        subgraph tools ["Agent Builder tools"]
+            t1["advisor.visa_policy_search<br/>ELSER semantic search"]
+            t2["advisor.policy_lookup<br/>ESQL per-corridor stats"]
+            t3["inspector.scam_pattern_match<br/>ELSER vs known scams"]
+            t4["inspector.identity_reuse<br/>ESQL phone/handle reuse"]
+        end
+        subgraph idx ["Indices"]
+            i1[("visa-policies<br/>semantic_text + ELSER")]
+            i2[("known-scams<br/>semantic_text + ELSER")]
+            i3[("agency-posts<br/>live Telegram scans")]
+            i4[("crawled-visa-pages<br/>5,100+ gov pages")]
+        end
+        t1 --> i1
+        t2 --> i1
+        t3 --> i2
+        t4 --> i3
+    end
+
+    advisor --> t1
+    advisor --> t2
+    inspector --> t3
+    inspector --> t4
+    reporter -- "community warning write-back" --> i2
+    reporter -- "mines authority email" --> i4
+
+    kibo <--> gemini["Gemini<br/>routing · synthesis<br/>grounded search · post rating"]
+    reporter -- "complaint email<br/>case ref + evidence" --> resend["Resend"]
+
+    subgraph ingest ["Ingestion to Elastic"]
+        crawler["Elastic Open Crawler<br/>20 immigration authorities"] --> i4
+        crawler --> i1
+        telegram["Telegram channels"] --> i3
+        cfpb["CFPB fraud database"] --> i2
+        firecrawl["Firecrawl news"] --> i1
+    end
+
+    classDef agent fill:#1e293b,stroke:#2ee8c2,stroke-width:2px,color:#e2e8f0;
+    classDef store fill:#0f172a,stroke:#38bdf8,stroke-width:1.5px,color:#cbd5e1;
+    classDef ext fill:#1e293b,stroke:#a78bfa,stroke-width:1.5px,color:#e2e8f0;
+    class advisor,inspector,reporter,kibo agent;
+    class i1,i2,i3,i4,t1,t2,t3,t4 store;
+    class gemini,resend,crawler,telegram,cfpb,firecrawl,user,fe ext;
