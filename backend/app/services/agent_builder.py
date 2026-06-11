@@ -37,6 +37,11 @@ async def create_tool(tool_def: dict) -> dict:
     return await _request("POST", "/tools", json=tool_def)
 
 
+async def update_tool(tool_id: str, tool_def: dict) -> dict:
+    body = {k: v for k, v in tool_def.items() if k not in ("id", "type")}
+    return await _request("PUT", f"/tools/{tool_id}", json=body)
+
+
 async def delete_tool(tool_id: str) -> dict:
     return await _request("DELETE", f"/tools/{tool_id}")
 
@@ -56,6 +61,11 @@ async def list_agents() -> dict:
 
 async def create_agent(agent_def: dict) -> dict:
     return await _request("POST", "/agents", json=agent_def)
+
+
+async def update_agent(agent_id: str, agent_def: dict) -> dict:
+    body = {k: v for k, v in agent_def.items() if k != "id"}
+    return await _request("PUT", f"/agents/{agent_id}", json=body)
 
 
 async def delete_agent(agent_id: str) -> dict:
@@ -116,7 +126,9 @@ ELASTIPATH_TOOLS = [
         "description": (
             "Semantic search over official visa policy documents. Use for natural language "
             "questions about visa requirements, eligibility, or procedures. Returns cited "
-            "policy text with source URLs."
+            "policy text with source URLs. REQUIRED: pass the question as the `nlQuery` "
+            'string parameter, e.g. {"nlQuery": "student visa requirements for China"}. '
+            "Never call this tool with empty parameters."
         ),
         "tags": ["advisor", "visa", "semantic"],
         "configuration": {
@@ -129,9 +141,11 @@ ELASTIPATH_TOOLS = [
         "type": "index_search",
         "description": (
             "Semantic similarity search against known scam posts and fraud patterns. "
-            "Paste agency post text as the query. Returns matching known scams with "
-            "similarity scores. Matches above 0.7 indicate HIGH scam risk. "
-            "This is the primary fraud detection tool."
+            "Returns matching known scams with similarity scores. Matches above 0.7 "
+            "indicate HIGH scam risk. This is the primary fraud detection tool. "
+            "REQUIRED: pass the suspicious post text as the `nlQuery` string parameter, "
+            'e.g. {"nlQuery": "guaranteed visa approval no documents needed"}. '
+            "Never call this tool with empty parameters."
         ),
         "tags": ["inspector", "scam", "semantic"],
         "configuration": {
@@ -305,9 +319,14 @@ ELASTIPATH_AGENTS = [
         "configuration": {
             "instructions": (
                 "You are ElastiPath Inspector. Evaluate agency posts for fraud risk.\n\n"
+                "Tool usage: index-search tools (inspector.scam_pattern_match, "
+                "advisor.visa_policy_search) take ONE required string parameter `nlQuery`. "
+                "Always fill it — pass the suspicious post text to scam_pattern_match and "
+                "a plain-language policy question to visa_policy_search. Never send {}.\n\n"
                 "Process:\n"
-                "1. Semantic match the post text against known-scams.\n"
-                "2. Pull official visa requirements for the claimed corridor.\n"
+                "1. Semantic match the post text against known-scams (nlQuery = the post text).\n"
+                "2. Pull official visa requirements for the claimed corridor "
+                "(nlQuery = e.g. 'official student visa requirements for China').\n"
                 "3. Compare each claim against official requirements — flag contradictions.\n"
                 "4. Check for identity reuse (shared phones/handles across agencies).\n"
                 "5. Calculate risk score 0-100:\n"
@@ -338,31 +357,47 @@ ELASTIPATH_AGENTS = [
 ]
 
 
+def _already_exists(e: httpx.HTTPStatusError) -> bool:
+    # Kibana reports duplicates as 400 "... already exists" (not 409).
+    return e.response.status_code == 409 or (
+        e.response.status_code == 400 and "already exists" in e.response.text
+    )
+
+
 async def setup_all_tools():
-    """Create all ElastiPath tools in Agent Builder."""
+    """Create (or update) all ElastiPath tools in Agent Builder — idempotent,
+    so re-running /api/setup pushes description/instruction fixes to Kibana."""
     results = {}
     for tool in ELASTIPATH_TOOLS:
         try:
-            result = await create_tool(tool)
+            await create_tool(tool)
             results[tool["id"]] = "created"
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 409:
-                results[tool["id"]] = "already exists"
+            if _already_exists(e):
+                try:
+                    await update_tool(tool["id"], tool)
+                    results[tool["id"]] = "updated"
+                except httpx.HTTPStatusError as e2:
+                    results[tool["id"]] = f"update error: {e2.response.status_code}"
             else:
                 results[tool["id"]] = f"error: {e.response.status_code}"
     return results
 
 
 async def setup_all_agents():
-    """Create all ElastiPath agents in Agent Builder."""
+    """Create (or update) all ElastiPath agents in Agent Builder."""
     results = {}
     for agent in ELASTIPATH_AGENTS:
         try:
-            result = await create_agent(agent)
+            await create_agent(agent)
             results[agent["id"]] = "created"
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 409:
-                results[agent["id"]] = "already exists"
+            if _already_exists(e):
+                try:
+                    await update_agent(agent["id"], agent)
+                    results[agent["id"]] = "updated"
+                except httpx.HTTPStatusError as e2:
+                    results[agent["id"]] = f"update error: {e2.response.status_code}"
             else:
                 results[agent["id"]] = f"error: {e.response.status_code}"
     return results
