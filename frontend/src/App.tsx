@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch, CaretDown } from '@phosphor-icons/react';
+import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch, CaretDown, Database } from '@phosphor-icons/react';
 
 function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
@@ -167,9 +167,23 @@ export default function App() {
             <BridgeIcon size={22} className="text-primary" />
             <span className="text-base font-bold tracking-tight text-foreground">Carryover</span>
           </div>
-          <span className="text-[10px] text-muted-foreground font-mono hidden lg:inline">
-            community-reported, updated daily
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] text-muted-foreground font-mono hidden lg:inline">
+              community-reported, updated daily
+            </span>
+            <button
+              onClick={() => setActiveTab(activeTab === 'elastic' ? 'destinations' : 'elastic')}
+              title="Behind the scenes: everything indexed in Elasticsearch"
+              className={`flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-md border transition-colors ${
+                activeTab === 'elastic'
+                  ? 'border-primary/50 text-primary bg-primary/10'
+                  : 'border-border text-muted-foreground hover:text-foreground hover:border-ring'
+              }`}
+            >
+              <Database size={12} weight="bold" />
+              Elastic Data
+            </button>
+          </div>
         </div>
       </header>
 
@@ -183,7 +197,7 @@ export default function App() {
 
           {/* ── Hero grid: Globe | Greeting+Selectors / Purpose tabs ── */}
           <div className="border-b shrink-0">
-            <div className="grid grid-cols-1 lg:grid-cols-[180px_1fr] lg:divide-x divide-border">
+            <div className="grid grid-cols-1 lg:grid-cols-[152px_1fr] lg:divide-x divide-border">
               {/* Globe cell - spans 2 rows (hidden on mobile to save space) */}
               <div className="hidden lg:flex row-span-2 items-center justify-center bg-card/30 p-2">
                 <Globe nationality={nationality} destination={selectedDest} />
@@ -230,16 +244,16 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Purpose toggle — segmented control */}
-              <div className="grid grid-cols-4 gap-1.5 px-2 bg-card/30 items-center">
+              {/* Purpose toggle — flat divided cells with active underline */}
+              <div className="grid grid-cols-4 divide-x divide-border">
                 {Object.entries(PURPOSE_META).map(([key, { icon: Icon, label }]) => (
                   <button
                     key={key}
                     onClick={() => setDetailPurpose(key)}
-                    className={`flex items-center justify-center gap-1.5 h-9 rounded-md text-[11px] font-mono uppercase tracking-wider transition-colors ${
+                    className={`flex items-center justify-center gap-1.5 py-3 text-[11px] font-mono uppercase tracking-wider border-b-2 transition-colors ${
                       detailPurpose === key
-                        ? 'bg-primary/15 text-primary font-semibold ring-1 ring-primary/30'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        ? 'bg-primary/10 text-primary font-semibold border-primary'
+                        : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-card/40'
                     }`}
                   >
                     <Icon size={14} weight={detailPurpose === key ? 'fill' : 'regular'} />
@@ -255,10 +269,9 @@ export default function App() {
             <div className="mx-auto px-3 lg:px-5 flex items-center h-10 justify-between gap-3">
               <nav className="flex items-center gap-4 lg:gap-6 h-full overflow-x-auto no-scrollbar shrink min-w-0">
                 {([
-                  ['destinations', 'DESTINATIONS'],
-                  ['agency', 'BAD AGENCY WATCH'],
-                  ['pathways', 'VISA PATHWAYS'],
-                  ['elastic', 'ELASTIC DATA'],
+                  ['destinations', 'Advisor'],
+                  ['agency', 'Inspector'],
+                  ['pathways', 'Pathways'],
                 ] as const).map(([tab, label]) => (
                   <button
                     key={tab}

@@ -94,7 +94,7 @@ export default function Globe({ nationality, destination }: GlobeProps) {
   }, [nationality, destination]);
 
   return (
-    <div className="relative w-full flex items-center justify-center" style={{ maxWidth: 168 }}>
+    <div className="relative w-full flex items-center justify-center" style={{ maxWidth: 124 }}>
       {/* soft halo behind the globe */}
       <div
         aria-hidden
@@ -103,7 +103,7 @@ export default function Globe({ nationality, destination }: GlobeProps) {
       <canvas
         ref={canvasRef}
         className="relative w-full aspect-square"
-        style={{ contain: 'layout paint size', maxWidth: 168 }}
+        style={{ contain: 'layout paint size', maxWidth: 124 }}
       />
     </div>
   );
