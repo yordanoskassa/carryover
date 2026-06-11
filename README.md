@@ -188,11 +188,12 @@ REPORT_TO_EMAIL=<inbox that receives complaints>
 
 **Environment** tab:
 ```
-BACKEND_URL=http://backend:8001
+BACKEND_URL=https://anton-carryover.hrvnvm.easypanel.host
 ```
-(Services in the same project resolve each other by service name. If you named
-the service differently, point `BACKEND_URL` at that name — or at
-`http://<project>_<service>:8001` if the plain name doesn't resolve.)
+Point `BACKEND_URL` at the backend's public URL (as above), or keep traffic
+inside the project network with `http://backend:8001` (services in the same
+project resolve each other by service name; use
+`http://<project>_<service>:8001` if the plain name doesn't resolve).
 
 ### 3. First-time setup
 After both services deploy, register the indices, tools, and agents once:

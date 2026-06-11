@@ -3,14 +3,30 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# Elastic Cloud URLs need explicit port for the Python client
-_es_url = settings.elasticsearch_url
+# Elastic Cloud URLs need a scheme and explicit port for the Python client.
+_es_url = settings.elasticsearch_url.strip()
+if _es_url and "://" not in _es_url:
+    _es_url = "https://" + _es_url
 if _es_url.startswith("https://") and ":" not in _es_url.split("//", 1)[1]:
     _es_url += ":443"
 
-es = Elasticsearch(
-    _es_url,
-    api_key=settings.elasticsearch_api_key,
+
+class _UnconfiguredES:
+    """Stand-in when ELASTICSEARCH_URL is unset: the app still boots (so
+    /health works and the container doesn't crash-loop) and any actual
+    Elastic call fails with a clear message instead of a deep traceback."""
+
+    def __getattr__(self, name):
+        raise RuntimeError(
+            "Elasticsearch is not configured — set the ELASTICSEARCH_URL and "
+            "ELASTICSEARCH_API_KEY environment variables."
+        )
+
+
+es = (
+    Elasticsearch(_es_url, api_key=settings.elasticsearch_api_key)
+    if _es_url
+    else _UnconfiguredES()
 )
 
 
