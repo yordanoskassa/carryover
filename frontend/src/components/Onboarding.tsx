@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, ShieldCheck } from '@phosphor-icons/react';
+import { ArrowRight } from '@phosphor-icons/react';
 
 function flag(code: string): string {
   return code
@@ -35,26 +35,17 @@ export default function Onboarding({ countries, onComplete }: OnboardingProps) {
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
       >
-        <div className="px-7 pt-7 pb-5 border-b border-border">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="px-7 py-6 space-y-5">
+          <div className="flex items-center gap-2">
             <span className="text-lg font-bold tracking-tight">Carryover</span>
             <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground border border-border rounded-full px-2 py-0.5">
               visa intelligence
             </span>
           </div>
-          <h2 className="text-xl font-semibold leading-snug">
-            Before we start, two quick things
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-            Carryover personalizes visa guidance and fraud checks to your
-            migration corridor.
-          </p>
-        </div>
 
-        <div className="px-7 py-5 space-y-5">
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-2">
-              What should we call you?
+              Name
             </label>
             <input
               autoFocus
@@ -68,9 +59,12 @@ export default function Onboarding({ countries, onComplete }: OnboardingProps) {
           </div>
 
           <div>
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-2">
-              Where are you from?
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+              Choose an origin country
             </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Corridors most targeted by visa-agency scams.
+            </p>
             <div className="grid grid-cols-2 gap-1.5">
               {countries.map((c) => (
                 <button
@@ -88,21 +82,15 @@ export default function Onboarding({ countries, onComplete }: OnboardingProps) {
               ))}
             </div>
           </div>
-        </div>
 
-        <div className="px-7 pb-7 pt-1">
           <button
             onClick={submit}
             disabled={!ready}
             className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
           >
-            Start exploring
+            Start
             <ArrowRight size={15} weight="bold" />
           </button>
-          <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground mt-3.5">
-            <ShieldCheck size={13} />
-            Stored only on this device — no account, no tracking.
-          </p>
         </div>
       </motion.div>
     </div>
