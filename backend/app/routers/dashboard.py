@@ -243,12 +243,13 @@ async def get_visa_overview(nationality: str = "ET", purpose: str = "student"):
         "ZA": 61,
     }
 
-    # Origin penalty — refusal rates differ sharply by passport. Calibrated to
-    # the relative ordering of published Schengen/UK refusal statistics for
-    # our origin countries; unknown origins get a mild default.
+    # Origin penalty — refusal rates differ sharply by passport. Spread wide
+    # and made distinct per country (not clustered) so switching origin visibly
+    # re-grades the whole map. Roughly tracks published Schengen/UK refusal
+    # rankings; unknown origins get a mild default.
     ORIGIN_PENALTY = {
-        "NG": 20, "PK": 19, "GH": 18, "BD": 17, "ET": 16,
-        "KE": 13, "NP": 12, "EG": 12, "PH": 9, "IN": 8,
+        "NG": 30, "PK": 27, "BD": 24, "GH": 21, "ET": 18,
+        "KE": 14, "EG": 11, "NP": 9, "PH": 5, "IN": 3,
     }
     # Purpose shifts mirror real-world difficulty for these corridors:
     # student routes are structured and most attainable, tourist visas get
@@ -259,7 +260,7 @@ async def get_visa_overview(nationality: str = "ET", purpose: str = "student"):
     # carries weight) and more when officers weigh settlement intent.
     PURPOSE_ORIGIN_AMP = {"student": 0.7, "tourist": 1.2, "work": 1.25, "family": 1.1}
 
-    origin_pen = ORIGIN_PENALTY.get(nationality, 6) * PURPOSE_ORIGIN_AMP.get(purpose, 1.0)
+    origin_pen = ORIGIN_PENALTY.get(nationality, 12) * PURPOSE_ORIGIN_AMP.get(purpose, 1.0)
 
     entries = []
     for dest in destinations:
@@ -268,14 +269,16 @@ async def get_visa_overview(nationality: str = "ET", purpose: str = "student"):
 
         # Openness prior − origin penalty + purpose shift + how well we can
         # guide on it (structured coverage, crawl breadth) − scam pressure
-        # ± a stable corridor+purpose nudge so the same destination reads
-        # differently per nationality AND purpose.
+        # ± a stable corridor nudge. The corridor term is keyed on the exact
+        # origin→destination pair, so the same destination reads differently
+        # for each passport beyond the flat penalty (some routes are quietly
+        # easier/harder than the averages suggest).
         base = BASE_OPENNESS.get(dest, 55) - origin_pen + PURPOSE_SHIFT.get(purpose, 0)
         policy_score = min((policies / max_policies * 8) if max_policies else 4, 8)
         coverage_boost = min(structured_counts.get(dest, 0), 3) * 4
         scam_penalty = min((scams / max_scams * 18) if max_scams else 0, 18)
-        jitter = zlib.crc32(f"{nationality}->{dest}:{purpose}".encode()) % 19 - 9
-        score = max(8, min(94, int(base + policy_score + coverage_boost - scam_penalty + jitter)))
+        corridor_nudge = zlib.crc32(f"{nationality}->{dest}:{purpose}".encode()) % 25 - 12
+        score = max(6, min(96, int(base + policy_score + coverage_boost - scam_penalty + corridor_nudge)))
 
         if score >= 65:
             label = "Open"
