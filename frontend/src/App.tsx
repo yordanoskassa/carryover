@@ -32,6 +32,7 @@ function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: 
   );
 }
 import Globe from './components/Globe';
+import Onboarding from './components/Onboarding';
 import NewsTicker from './components/NewsTicker';
 import Inspector from './components/Inspector';
 import Reporter from './components/Reporter';
@@ -102,7 +103,17 @@ export default function App() {
   const [selectedDest, setSelectedDest] = useState(() => localStorage.getItem('co_dest') || 'US');
   const [search, setSearch] = useState('');
   const [stats, setStats] = useState<DashboardStats>({ scams: 0, policies: 0, flaggedAgencies: 0, sharedPhones: 0 });
-  const [name] = useState(() => localStorage.getItem('co_name') || 'Traveler');
+  const [name, setName] = useState(() => localStorage.getItem('co_name') || 'Traveler');
+  // First-run gate: until a name is stored, a blocking onboarding modal asks
+  // for the user's name and origin country (localStorage only — no accounts).
+  const [onboarded, setOnboarded] = useState(() => !!localStorage.getItem('co_name'));
+
+  const completeOnboarding = (newName: string, origin: string) => {
+    localStorage.setItem('co_name', newName);
+    setName(newName);
+    setNationality(origin);
+    setOnboarded(true);
+  };
 
   const [visaData, setVisaData] = useState<VisaOverviewData | null>(null);
   const [visaLoading, setVisaLoading] = useState(true);
@@ -203,6 +214,7 @@ export default function App() {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden relative">
+      {!onboarded && <Onboarding countries={COUNTRIES} onComplete={completeOnboarding} />}
       {/* ── Header ── */}
       <header className="border-b shrink-0 z-50">
         <div className="mx-auto px-5 h-12 flex items-center justify-between">
