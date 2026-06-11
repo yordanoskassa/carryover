@@ -28,7 +28,9 @@ RESEND_ENDPOINT = "https://api.resend.com/emails"
 
 
 def email_configured() -> bool:
-    return bool(settings.resend_api_key and settings.report_to_email)
+    # The API key alone is enough — the recipient comes from the resolved
+    # authority email; REPORT_TO_EMAIL is an optional fallback/record copy.
+    return bool(settings.resend_api_key)
 
 
 # Where a complaint for a given destination should be filed. `address` is the
@@ -198,17 +200,27 @@ async def send_email(
         return {
             "channel": "draft",
             "delivered": False,
-            "detail": "Email channel not configured (set RESEND_API_KEY + REPORT_TO_EMAIL).",
+            "detail": "Email channel not configured (set RESEND_API_KEY).",
         }
 
     recipient = to or settings.report_to_email
+    if not recipient:
+        return {
+            "channel": "draft",
+            "delivered": False,
+            "detail": (
+                "No recipient — the authority publishes no reporting email and "
+                "no REPORT_TO_EMAIL fallback is set. Complaint is ready to file "
+                "via the portal."
+            ),
+        }
     payload = {
         "from": settings.report_from_email,
         "to": [recipient],
         "subject": subject,
         "text": body,
     }
-    if to and to != settings.report_to_email:
+    if to and settings.report_to_email and to != settings.report_to_email:
         payload["bcc"] = [settings.report_to_email]
     if html:
         payload["html"] = html
