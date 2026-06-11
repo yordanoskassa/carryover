@@ -82,6 +82,32 @@ _ADVICE_HINTS = re.compile(
 )
 _PHONE = re.compile(r"\+?\d[\d\s().-]{7,}\d")
 
+# Country-name → ISO code for the heuristic router (Gemini extracts these
+# itself via destination_code/nationality_code in the route schema).
+_COUNTRY_NAMES: dict[str, str] = {
+    r"\b(uk|united kingdom|britain|england)\b": "GB",
+    r"\b(usa?|united states|america)\b": "US",
+    r"\bcanada\b": "CA", r"\bgermany\b": "DE", r"\baustralia\b": "AU",
+    r"\bfrance\b": "FR", r"\bnetherlands\b": "NL", r"\bsweden\b": "SE",
+    r"\bireland\b": "IE", r"\bnorway\b": "NO", r"\bfinland\b": "FI",
+    r"\bswitzerland\b": "CH", r"\bspain\b": "ES", r"\bitaly\b": "IT",
+    r"\bnew zealand\b": "NZ", r"\bsingapore\b": "SG", r"\bjapan\b": "JP",
+    r"\bsouth korea\b": "KR", r"\bportugal\b": "PT", r"\bpoland\b": "PL",
+    r"\b(uae|united arab emirates|dubai)\b": "AE", r"\bqatar\b": "QA",
+    r"\bturkey\b": "TR", r"\bethiopia\b": "ET", r"\bnigeria\b": "NG",
+    r"\bindia\b": "IN", r"\bnepal\b": "NP", r"\bphilippines\b": "PH",
+    r"\bbangladesh\b": "BD", r"\bkenya\b": "KE", r"\bghana\b": "GH",
+    r"\bpakistan\b": "PK", r"\begypt\b": "EG",
+}
+
+
+def _detect_country(q: str, exclude: set[str]) -> str | None:
+    """First country named in the question that differs from the current context."""
+    for pat, code in _COUNTRY_NAMES.items():
+        if code not in exclude and re.search(pat, q, re.IGNORECASE):
+            return code
+    return None
+
 
 def _heuristic_route(req: KiboChatRequest) -> dict:
     """Keyword fallback router used when Gemini is unavailable."""
@@ -106,6 +132,11 @@ def _heuristic_route(req: KiboChatRequest) -> dict:
         "post_text": q if suspicious else None,
         "agency_name": None,
         "identifier": phone.group(0).strip() if phone else None,
+        # A country named in the question that differs from the current context
+        # is treated as a destination switch (Gemini disambiguates origin vs
+        # destination; the heuristic takes the common case).
+        "destination_code": _detect_country(q, {req.nationality, req.destination}),
+        "nationality_code": None,
     }
 
 
@@ -267,12 +298,26 @@ async def kibo_chat(req: KiboChatRequest):
         plan = _heuristic_route(req)
     agents = [a for a in plan.get("agents", []) if a in ("inspector", "advisor")] or ["advisor"]
 
+    # The question may switch corridors ("what about the US?") — the specialists
+    # run against the new corridor and the UI gets a context event to follow.
+    new_dest = (plan.get("destination_code") or "").strip().upper() or req.destination
+    new_nat = (plan.get("nationality_code") or "").strip().upper() or req.nationality
+    context_changed = new_dest != req.destination or new_nat != req.nationality
+    if context_changed:
+        req = req.model_copy(update={"destination": new_dest, "nationality": new_nat})
+
     events: list[dict] = [{
         "kind": "handoff",
         "agents": agents,
         "reason": plan.get("reason", ""),
         "router": engine,
     }]
+    if context_changed:
+        events.append({
+            "kind": "context",
+            "nationality": req.nationality,
+            "destination": req.destination,
+        })
 
     tasks = {}
     if "inspector" in agents:

@@ -54,6 +54,21 @@ ROUTE_SCHEMA = {
             "type": ["string", "null"],
             "description": "Phone number or social handle mentioned, if any.",
         },
+        "destination_code": {
+            "type": ["string", "null"],
+            "description": (
+                "ISO 3166-1 alpha-2 code, ONLY if the question explicitly names a "
+                "destination country different from the user's current context "
+                "(e.g. 'what about the US visa' -> 'US'). Null otherwise."
+            ),
+        },
+        "nationality_code": {
+            "type": ["string", "null"],
+            "description": (
+                "ISO 3166-1 alpha-2 code, ONLY if the question explicitly names a "
+                "different origin/citizenship than the current context. Null otherwise."
+            ),
+        },
     },
     "required": ["agents", "reason"],
 }
@@ -69,6 +84,11 @@ Two specialist agents are available:
 
 Route to BOTH when the user asks about a suspicious offer (inspector checks the
 claim, advisor supplies the official policy to compare against).
+
+If the question names a destination or origin country DIFFERENT from the user's
+current context, set destination_code / nationality_code to that country's ISO
+alpha-2 code so the app can switch corridors. Leave them null when the question
+stays within the current context.
 
 User context: citizen of {nationality}, destination {destination}, purpose {purpose}.
 User question:

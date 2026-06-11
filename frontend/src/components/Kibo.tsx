@@ -18,6 +18,7 @@ interface KiboProps {
   purpose: string;
   onInvestigation?: (data: ScanAgencyResponse) => void;
   onBusyChange?: (busy: boolean) => void;
+  onContextChange?: (ctx: { nationality: string; destination: string }) => void;
 }
 
 export interface KiboHandle {
@@ -307,7 +308,7 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
 }
 
 const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
-  { nationality, destination, purpose, onInvestigation, onBusyChange }, ref,
+  { nationality, destination, purpose, onInvestigation, onBusyChange, onContextChange }, ref,
 ) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -339,6 +340,11 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
           setItems((prev) => [...prev, event]);
           setWorkingAgents((prev) => prev.filter((a) => a !== event.agent));
           await delay(450);
+        } else if (event.kind === 'context') {
+          // Kibo noticed the question switched corridors — the whole app follows.
+          onContextChange?.({ nationality: event.nationality, destination: event.destination });
+          setItems((prev) => [...prev, event]);
+          await delay(350);
         } else if (event.kind === 'scan_result') {
           // Heavy result goes to the dashboard panel, not the chat —
           // leave only a slim chip behind.
@@ -425,6 +431,22 @@ const Kibo = forwardRef<KiboHandle, KiboProps>(function Kibo(
             return item.agent === 'inspector'
               ? <InspectorCard key={i} data={item.data as InspectorCardData} tools={item.tools} />
               : <AdvisorCard key={i} data={item.data as AdvisorCardData} tools={item.tools} />;
+          }
+          if (item.kind === 'context') {
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 rounded-md px-2.5 py-1.5 w-fit"
+              >
+                <ShareNetwork size={13} weight="bold" />
+                <span className="font-medium">
+                  Corridor switched to {item.nationality} → {item.destination}
+                </span>
+                <span className="text-muted-foreground">dashboard updated</span>
+              </motion.div>
+            );
           }
           if (item.kind === 'action_prompt') {
             return <ReporterAction key={i} event={item} />;

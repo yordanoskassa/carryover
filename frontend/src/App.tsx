@@ -1,5 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch, CaretDown, Database } from '@phosphor-icons/react';
+import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch, CaretDown, Database, FileText, Detective, Megaphone } from '@phosphor-icons/react';
+
+// Official Elastic mark (multicolor) — header co-branding.
+function ElasticIcon({ size = 18, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" className={className} aria-label="Elastic">
+      <path d="M32 16.77c0-2.678-1.664-5.03-4.166-5.937a9.14 9.14 0 0 0 .162-1.718c0-5-4.057-9.048-9.035-9.048-2.92 0-5.626 1.393-7.33 3.746a4.78 4.78 0 0 0-2.935-1c-2.65 0-4.8 2.15-4.8 4.8 0 .582.108 1.15.298 1.677A6.36 6.36 0 0 0 0 15.243a6.31 6.31 0 0 0 4.179 5.951 9.02 9.02 0 0 0-.162 1.718 9.03 9.03 0 0 0 9.021 9.021c2.92 0 5.626-1.407 7.317-3.76.84.663 1.866 1.028 2.935 1.028 2.65 0 4.8-2.15 4.8-4.8 0-.582-.108-1.15-.298-1.677A6.37 6.37 0 0 0 32 16.771" fill="#fff"/>
+      <path d="M12.578 13.795l7.006 3.192 7.06-6.194a7.4 7.4 0 0 0 .149-1.555 7.91 7.91 0 0 0-7.899-7.899 7.89 7.89 0 0 0-6.505 3.435l-1.177 6.1z" fill="#fed10a"/>
+      <path d="M5.33 21.207a7.66 7.66 0 0 0-.15 1.582c0 4.37 3.557 7.912 7.926 7.912a7.92 7.92 0 0 0 6.546-3.462l1.163-6.073-1.555-2.975-7.033-3.205z" fill="#24bbb1"/>
+      <path d="M5.288 9.09l4.8 1.136 1.055-5.45c-.65-.5-1.46-.77-2.3-.77A3.79 3.79 0 0 0 5.058 7.79c0 .446.08.893.23 1.298" fill="#ef5098"/>
+      <path d="M4.87 10.238c-2.137.703-3.638 2.76-3.638 5.018 0 2.205 1.366 4.166 3.408 4.95l6.735-6.086-1.23-2.637z" fill="#17a8e0"/>
+      <path d="M20.87 27.24a3.8 3.8 0 0 0 2.286.784 3.79 3.79 0 0 0 3.787-3.787 3.82 3.82 0 0 0-.23-1.312l-4.788-1.123z" fill="#93c83e"/>
+      <path d="M21.843 20.544l5.275 1.23a5.33 5.33 0 0 0 3.638-5.031 5.29 5.29 0 0 0-3.408-4.937l-6.898 6.046z" fill="#0779a1"/>
+    </svg>
+  );
+}
 
 function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
@@ -18,8 +33,8 @@ function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: 
 }
 import Globe from './components/Globe';
 import NewsTicker from './components/NewsTicker';
-import Advisor from './components/Advisor';
 import Inspector from './components/Inspector';
+import Reporter from './components/Reporter';
 import Dashboard, { type DashboardStats } from './components/Dashboard';
 import VisaOverview from './components/VisaOverview';
 import Kibo, { type KiboHandle } from './components/Kibo';
@@ -69,7 +84,16 @@ const PURPOSE_META: Record<string, { icon: typeof GraduationCap; label: string }
   tourist: { icon: AirplaneTilt, label: 'Tourist' },
 };
 
-type Tab = 'destinations' | 'agency' | 'pathways' | 'elastic';
+type Tab = 'destinations' | 'agency' | 'reporter' | 'elastic';
+
+// The three specialists, as the user sees them: each main tab IS an agent.
+// Colors match the agent cards in the Kibo chat (Advisor blue, Inspector red,
+// Reporter amber).
+const AGENT_TABS: { tab: Tab; label: string; Icon: typeof FileText; active: string; dot: string }[] = [
+  { tab: 'destinations', label: 'Advisor', Icon: FileText, active: 'text-blue-400 border-blue-400', dot: 'bg-blue-400' },
+  { tab: 'agency', label: 'Inspector', Icon: Detective, active: 'text-red-400 border-red-400', dot: 'bg-red-400' },
+  { tab: 'reporter', label: 'Reporter', Icon: Megaphone, active: 'text-amber-400 border-amber-400', dot: 'bg-amber-400' },
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('destinations');
@@ -111,6 +135,13 @@ export default function App() {
     setInvestigation(data);
     setActiveTab('agency');
     setDashRefresh((k) => k + 1); // scan indexed new posts → re-pull dashboard
+  };
+
+  // Kibo noticed the question switched corridors ("what about the US?") —
+  // the dashboard follows. Only apply codes the UI actually knows.
+  const handleContextChange = (ctx: { nationality: string; destination: string }) => {
+    if (DESTINATIONS[ctx.destination]) setSelectedDest(ctx.destination);
+    if (COUNTRIES.some((c) => c.code === ctx.nationality)) setNationality(ctx.nationality);
   };
 
   useEffect(() => { localStorage.setItem('co_nationality', nationality); }, [nationality]);
@@ -166,6 +197,11 @@ export default function App() {
           <div className="flex items-center gap-2.5">
             <BridgeIcon size={27} className="text-primary" />
             <span className="text-lg font-bold tracking-tight text-foreground">Carryover</span>
+            <span className="hidden sm:flex items-center gap-1.5 pl-3 ml-0.5 border-l border-border">
+              <span className="text-[11px] text-muted-foreground">in collaboration with</span>
+              <ElasticIcon size={17} />
+              <span className="text-sm font-semibold text-foreground">Elastic</span>
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-[11px] text-muted-foreground font-mono hidden lg:inline">
@@ -268,23 +304,24 @@ export default function App() {
           <div className="border-b shrink-0">
             <div className="mx-auto px-3 lg:px-5 flex items-center h-10 justify-between gap-3">
               <nav className="flex items-center gap-4 lg:gap-6 h-full overflow-x-auto no-scrollbar shrink min-w-0">
-                {([
-                  ['destinations', 'Advisor'],
-                  ['agency', 'Inspector'],
-                  ['pathways', 'Pathways'],
-                ] as const).map(([tab, label]) => (
+                {AGENT_TABS.map(({ tab, label, Icon, active, dot }) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`text-xs font-mono uppercase tracking-wider h-full border-b-2 transition-colors ${
+                    className={`flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider h-full border-b-2 transition-colors ${
                       activeTab === tab
-                        ? 'text-primary border-primary font-semibold'
+                        ? `${active} font-semibold`
                         : 'text-muted-foreground border-transparent hover:text-foreground'
                     }`}
                   >
+                    <span className={`w-1.5 h-1.5 rounded-full ${dot} ${activeTab === tab ? '' : 'opacity-40'}`} />
+                    <Icon size={14} weight={activeTab === tab ? 'fill' : 'regular'} />
                     {label}
                   </button>
                 ))}
+                <span className="hidden xl:inline text-[11px] text-muted-foreground normal-case font-sans shrink-0">
+                  three agents, one orchestrator
+                </span>
               </nav>
 
               <div className="hidden md:flex items-center divide-x divide-border shrink-0">
@@ -537,12 +574,10 @@ export default function App() {
             {/* ELASTIC DATA */}
             {activeTab === 'elastic' && <ElasticData />}
 
-            {/* VISA PATHWAYS */}
-            {activeTab === 'pathways' && (
+            {/* REPORTER — community-filed reports (the action agent's record) */}
+            {activeTab === 'reporter' && (
               <div className="p-4 pb-28 overflow-y-auto h-full">
-                <div className="border rounded-lg p-5">
-                  <Advisor nationality={nationality} destination={selectedDest} />
-                </div>
+                <Reporter refreshKey={dashRefresh} />
               </div>
             )}
           </div>
@@ -569,13 +604,14 @@ export default function App() {
               purpose={detailPurpose}
               onInvestigation={handleInvestigation}
               onBusyChange={setKiboBusy}
+              onContextChange={handleContextChange}
             />
           </aside>
         )}
       </div>
 
       {/* ── Kibo command bar: floating, bottom-center of the app ── */}
-      <div className="absolute bottom-4 lg:bottom-5 left-1/2 -translate-x-1/2 z-50 w-[min(720px,calc(100%-1.5rem))] flex flex-col items-center gap-2.5 pointer-events-none">
+      <div className="absolute bottom-4 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(880px,calc(100%-1.5rem))] flex flex-col items-center gap-2.5 pointer-events-none">
         {!kiboStarted && (
           <div className="flex flex-wrap gap-2 justify-center pointer-events-auto">
             {[
@@ -595,29 +631,29 @@ export default function App() {
         )}
         <form
           onSubmit={(e) => { e.preventDefault(); askKibo(); }}
-          className="w-full flex items-center gap-2.5 rounded-2xl border border-primary/45 bg-card px-3.5 py-2.5 shadow-[0_0_0_1px_rgba(16,185,129,0.12),0_0_34px_-4px_rgba(16,185,129,0.45),0_16px_44px_rgba(0,0,0,0.6)] pointer-events-auto transition-shadow focus-within:border-primary focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_0_44px_-2px_rgba(16,185,129,0.6),0_16px_44px_rgba(0,0,0,0.6)]"
+          className="w-full flex items-center gap-3 rounded-2xl border border-primary/45 bg-card px-4 py-3.5 shadow-[0_0_0_1px_rgba(16,185,129,0.12),0_0_34px_-4px_rgba(16,185,129,0.45),0_16px_44px_rgba(0,0,0,0.6)] pointer-events-auto transition-shadow focus-within:border-primary focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_0_44px_-2px_rgba(16,185,129,0.6),0_16px_44px_rgba(0,0,0,0.6)]"
         >
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
             {kiboBusy
-              ? <CircleNotch size={15} className="text-primary animate-spin" />
-              : <Sparkle size={15} weight="fill" className="text-primary" />}
+              ? <CircleNotch size={17} className="text-primary animate-spin" />
+              : <Sparkle size={17} weight="fill" className="text-primary" />}
           </div>
           <input
             value={kiboInput}
             onChange={(e) => setKiboInput(e.target.value)}
             placeholder={kiboBusy ? 'Kibo is working...' : 'Ask Kibo anything, or drop an @agency handle…'}
             disabled={kiboBusy}
-            className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/80"
+            className="flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground/80"
           />
-          <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline shrink-0 px-1.5 py-0.5 rounded bg-muted/60">
+          <span className="text-xs text-muted-foreground font-mono hidden sm:inline shrink-0 px-2 py-1 rounded bg-muted/60">
             {nationality}→{selectedDest}
           </span>
           <button
             type="submit"
             disabled={kiboBusy || !kiboInput.trim()}
-            className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 hover:brightness-110 transition-all"
+            className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 hover:brightness-110 transition-all"
           >
-            <PaperPlaneRight size={15} weight="bold" />
+            <PaperPlaneRight size={16} weight="bold" />
           </button>
         </form>
       </div>

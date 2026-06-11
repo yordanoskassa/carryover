@@ -58,6 +58,42 @@ def _template_complaint(authority: str, req: ReporterFileRequest) -> str:
     )
 
 
+@router.get("/recent")
+async def recent_reports(size: int = 20):
+    """Community-filed reports (Reporter actions + user write-backs), newest first.
+
+    Powers the Reporter tab: the visible record of what the action agent has
+    actually done.
+    """
+    try:
+        res = es.search(
+            index="known-scams",
+            size=size,
+            sort=[{"date_reported": {"order": "desc", "unmapped_type": "date"}}],
+            query={"terms": {"source": ["reporter_action", "user_report"]}},
+        )
+    except Exception:
+        return {"reports": []}
+
+    reports = []
+    for hit in res.get("hits", {}).get("hits", []):
+        src = hit["_source"]
+        reports.append({
+            "id": hit["_id"],
+            "post_text": (src.get("post_text") or "")[:300],
+            "agency_name": src.get("agency_name"),
+            "account_handle": src.get("account_handle"),
+            "phone": src.get("phone"),
+            "corridor": src.get("corridor"),
+            "scam_category": src.get("scam_category"),
+            "risk_score": src.get("risk_score"),
+            "verdict": src.get("verdict"),
+            "source": src.get("source"),
+            "date_reported": src.get("date_reported"),
+        })
+    return {"reports": reports}
+
+
 @router.post("/file", response_model=ReporterFileResponse)
 async def file_report(req: ReporterFileRequest):
     """File the community warning and draft + send the formal complaint."""

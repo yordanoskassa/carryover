@@ -296,9 +296,17 @@ export interface KiboActionPromptEvent {
   payload: ReporterPayload;
 }
 
+// Kibo detected a corridor switch in the question (e.g. "what about the US?")
+// — the UI follows by updating its nationality/destination selection.
+export interface KiboContextEvent {
+  kind: 'context';
+  nationality: string;
+  destination: string;
+}
+
 export type KiboEvent =
   | KiboHandoffEvent | KiboAgentCardEvent | KiboReplyEvent
-  | KiboScanEvent | KiboActionPromptEvent;
+  | KiboScanEvent | KiboActionPromptEvent | KiboContextEvent;
 
 export interface ReporterResult {
   filed: boolean;
@@ -313,6 +321,24 @@ export function fileReport(payload: ReporterPayload & { reply_to?: string }) {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export interface RecentReport {
+  id: string;
+  post_text: string;
+  agency_name: string | null;
+  account_handle: string | null;
+  phone: string | null;
+  corridor: string | null;
+  scam_category: string | null;
+  risk_score: number | null;
+  verdict: string | null;
+  source: string;
+  date_reported: string | null;
+}
+
+export function getRecentReports(size = 20) {
+  return request<{ reports: RecentReport[] }>(`/reporter/recent?size=${size}`);
 }
 
 export function kiboChat(
