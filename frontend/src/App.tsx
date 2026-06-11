@@ -206,7 +206,7 @@ export default function App() {
             <BridgeIcon size={27} className="text-primary" />
             <span className="text-lg font-bold tracking-tight text-foreground">Carryover</span>
             <span className="hidden sm:flex items-center gap-1.5 pl-3 ml-0.5 border-l border-border">
-              <span className="text-[11px] text-muted-foreground">in collaboration with</span>
+              <span className="text-[11px] text-muted-foreground">powered by</span>
               <ElasticIcon size={17} />
               <span className="text-sm font-semibold text-foreground">Elastic</span>
             </span>
