@@ -91,20 +91,41 @@ function ReporterPill({ working }: { working: boolean }) {
   );
 }
 
+// The Reporter's actual pipeline, narrated step by step while the single
+// /reporter/file call runs — same visible-multistep treatment as the
+// Telegram-channel scan, instead of one opaque spinner.
+const REPORT_STEPS = [
+  'Indexing a community warning into known-scams — future checks will flag this agency…',
+  'Drafting the formal complaint with Gemini from the evidence chain…',
+  'Resolving the authority’s reporting email — directory, then crawled official pages in Elastic…',
+  'Sending the complaint via Resend with the case file…',
+];
+// When each subsequent step is revealed (ms after click); the last step stays
+// "working" until the backend responds.
+const REPORT_STEP_DELAYS = [1100, 3600, 6400];
+
 // The one-click action card. Holds its own state: propose → filing → result.
 function ReporterAction({ event }: { event: KiboActionPromptEvent }) {
   const [status, setStatus] = useState<'idle' | 'filing' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<ReporterResult | null>(null);
   const [showLetter, setShowLetter] = useState(false);
+  const [stepIdx, setStepIdx] = useState(0); // index of the step currently "working"
 
   const run = async () => {
     setStatus('filing');
+    setStepIdx(0);
+    const timers = REPORT_STEP_DELAYS.map((d, i) =>
+      window.setTimeout(() => setStepIdx((s) => Math.max(s, i + 1)), d),
+    );
     try {
       const res = await fileReport(event.payload);
       setResult(res);
       setStatus('done');
     } catch {
       setStatus('error');
+    } finally {
+      timers.forEach(clearTimeout);
+      setStepIdx(REPORT_STEPS.length);
     }
   };
 
@@ -121,20 +142,15 @@ function ReporterAction({ event }: { event: KiboActionPromptEvent }) {
         <span className="text-[10px] text-muted-foreground font-mono">action agent</span>
       </div>
 
-      {status !== 'done' && (
+      {(status === 'idle' || status === 'error') && (
         <>
           <p className="text-xs leading-snug text-foreground/90">{event.description}</p>
           <button
             onClick={run}
-            disabled={status === 'filing'}
             className={`mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold
-              bg-amber-500 text-black hover:bg-amber-400 disabled:opacity-60 transition-colors`}
+              bg-amber-500 text-black hover:bg-amber-400 transition-colors`}
           >
-            {status === 'filing' ? (
-              <><CircleNotch size={13} className="animate-spin" /> Filing report & sending complaint…</>
-            ) : (
-              <><PaperPlaneTilt size={13} weight="bold" /> {event.label}</>
-            )}
+            <PaperPlaneTilt size={13} weight="bold" /> {event.label}
           </button>
           {status === 'error' && (
             <p className="mt-1.5 text-[11px] text-red-400">Couldn't file right now — the backend may be unreachable.</p>
@@ -145,8 +161,36 @@ function ReporterAction({ event }: { event: KiboActionPromptEvent }) {
         </>
       )}
 
+      {status === 'filing' && (
+        <div className="space-y-1.5 py-0.5">
+          {REPORT_STEPS.slice(0, stepIdx + 1).map((step, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-start gap-1.5 text-[11px] leading-snug"
+            >
+              {i < stepIdx ? (
+                <CheckCircle size={12} weight="fill" className="text-emerald-400 mt-px shrink-0" />
+              ) : (
+                <CircleNotch size={12} className="animate-spin text-amber-400 mt-px shrink-0" />
+              )}
+              <span className={i < stepIdx ? 'text-muted-foreground' : 'text-foreground/90'}>{step}</span>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
       {status === 'done' && result && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+          <div className="space-y-1 pb-1 border-b border-amber-500/15">
+            {REPORT_STEPS.map((step, i) => (
+              <div key={i} className="flex items-start gap-1.5 text-[10px] leading-snug text-muted-foreground">
+                <CheckCircle size={11} weight="fill" className="text-emerald-400 mt-px shrink-0" />
+                <span>{step.replace(/…$/, '')}</span>
+              </div>
+            ))}
+          </div>
           <p className="text-xs leading-snug text-foreground/90">{result.summary}</p>
           <div className="flex flex-wrap gap-1.5">
             {result.filed && (
