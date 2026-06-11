@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch } from '@phosphor-icons/react';
+import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch, CaretDown } from '@phosphor-icons/react';
 
 function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
@@ -187,44 +187,43 @@ export default function App() {
                 <Globe nationality={nationality} destination={selectedDest} />
               </div>
 
-              {/* Greeting + country selectors */}
+              {/* Greeting + inline origin picker + destination */}
               <div className="px-5 py-3 border-b">
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-xl font-bold leading-tight">
                       Hello, {name} {countryFlag(nationality)}
                     </h1>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Visa intelligence for {natName} travelers
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Visa intelligence for{' '}
+                      <span className="relative inline-flex items-center">
+                        <select
+                          value={nationality}
+                          onChange={(e) => setNationality(e.target.value)}
+                          aria-label="Your country of origin"
+                          className="appearance-none bg-transparent text-primary font-semibold cursor-pointer outline-none border-b border-dashed border-primary/50 hover:border-primary pr-4 transition-colors"
+                        >
+                          {COUNTRIES.map((c) => (
+                            <option key={c.code} value={c.code}>{c.name}</option>
+                          ))}
+                        </select>
+                        <CaretDown size={10} weight="bold" className="absolute right-0 text-primary pointer-events-none" />
+                      </span>{' '}
+                      travelers
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-semibold text-muted-foreground uppercase">From</span>
-                      <select
-                        value={nationality}
-                        onChange={(e) => setNationality(e.target.value)}
-                        className="h-8 rounded border border-input bg-card px-2.5 text-sm outline-none appearance-none cursor-pointer"
-                      >
-                        {COUNTRIES.map((c) => (
-                          <option key={c.code} value={c.code}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <span className="text-muted-foreground text-lg">→</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-semibold text-muted-foreground uppercase">To</span>
-                      <select
-                        value={selectedDest}
-                        onChange={(e) => setSelectedDest(e.target.value)}
-                        className="h-8 rounded border border-input bg-card px-2.5 text-sm outline-none appearance-none cursor-pointer"
-                      >
-                        {Object.entries(DESTINATIONS).map(([code, label]) => (
-                          <option key={code} value={code}>{label}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-semibold text-muted-foreground uppercase">Destination</span>
+                    <select
+                      value={selectedDest}
+                      onChange={(e) => setSelectedDest(e.target.value)}
+                      className="h-8 rounded-md border border-input bg-card px-2.5 text-sm outline-none appearance-none cursor-pointer hover:border-ring transition-colors"
+                    >
+                      {Object.entries(DESTINATIONS).map(([code, label]) => (
+                        <option key={code} value={code}>{label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -235,13 +234,13 @@ export default function App() {
                   <button
                     key={key}
                     onClick={() => setDetailPurpose(key)}
-                    className={`flex items-center justify-center gap-2 py-3 text-sm font-mono uppercase tracking-wide transition-colors ${
+                    className={`flex items-center justify-center gap-1.5 py-2 text-[11px] font-mono uppercase tracking-wider border-b-2 transition-colors ${
                       detailPurpose === key
-                        ? 'bg-primary/10 text-primary font-semibold'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+                        ? 'bg-primary/10 text-primary font-semibold border-primary'
+                        : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-card/50'
                     }`}
                   >
-                    <Icon size={16} weight={detailPurpose === key ? 'fill' : 'regular'} />
+                    <Icon size={13} weight={detailPurpose === key ? 'fill' : 'regular'} />
                     {label}
                   </button>
                 ))}
@@ -570,7 +569,7 @@ export default function App() {
         )}
         <form
           onSubmit={(e) => { e.preventDefault(); askKibo(); }}
-          className="w-full flex items-center gap-2 rounded-2xl border bg-card/95 backdrop-blur px-3 py-2 shadow-2xl pointer-events-auto"
+          className="w-full flex items-center gap-2 rounded-2xl border border-primary/30 ring-1 ring-primary/10 bg-card backdrop-blur px-3 py-2 shadow-[0_0_30px_-6px_rgba(16,185,129,0.3),0_12px_36px_rgba(0,0,0,0.55)] pointer-events-auto"
         >
           <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
             {kiboBusy

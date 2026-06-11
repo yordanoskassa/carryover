@@ -44,8 +44,8 @@ export default function Globe({ nationality, destination }: GlobeProps) {
     phiRef.current = startPhi;
 
     const markers = [
-      { location: origin as [number, number], size: 0.12 },
-      { location: dest as [number, number], size: 0.12 },
+      { location: origin as [number, number], size: 0.08 },
+      { location: dest as [number, number], size: 0.14 },
     ];
 
     const onResize = () => {
@@ -61,14 +61,14 @@ export default function Globe({ nationality, destination }: GlobeProps) {
       width: widthRef.current * 2,
       height: widthRef.current * 2,
       phi: startPhi,
-      theta: 0.2,
+      theta: 0.28,
       dark: 1,
-      diffuse: 1.6,
-      mapSamples: 24000,
-      mapBrightness: 6,
-      baseColor: [0.12, 0.18, 0.22],
-      markerColor: [0, 0.83, 0.67],
-      glowColor: [0, 0.4, 0.35],
+      diffuse: 2.4,
+      mapSamples: 32000,
+      mapBrightness: 9,
+      baseColor: [0.16, 0.24, 0.27],
+      markerColor: [0.1, 1, 0.78],
+      glowColor: [0.04, 0.5, 0.42],
       markers,
     });
 
@@ -94,10 +94,17 @@ export default function Globe({ nationality, destination }: GlobeProps) {
   }, [nationality, destination]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full aspect-square"
-      style={{ contain: 'layout paint size', maxWidth: 180 }}
-    />
+    <div className="relative w-full flex items-center justify-center" style={{ maxWidth: 180 }}>
+      {/* soft halo behind the globe */}
+      <div
+        aria-hidden
+        className="absolute inset-[8%] rounded-full bg-primary/20 blur-2xl"
+      />
+      <canvas
+        ref={canvasRef}
+        className="relative w-full aspect-square"
+        style={{ contain: 'layout paint size', maxWidth: 180 }}
+      />
+    </div>
   );
 }
