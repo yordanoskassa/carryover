@@ -177,25 +177,27 @@ function AdvisorCard({ data, tools }: { data: AdvisorCardData; tools: string[] }
   );
 }
 
+const SUGGESTIONS = [
+  'What do I need for a UK student visa?',
+  'Check @gloryconsultancy',
+  'Is a guaranteed 5-day visa real?',
+];
+
 export default function Kibo({ nationality, destination, purpose, onInvestigation }: KiboProps) {
-  const [items, setItems] = useState<ChatItem[]>([
-    {
-      kind: 'kibo',
-      content: 'I\'m Kibo. I coordinate a team of agents — Inspector checks agencies for fraud, Advisor pulls official visa policy. Give me an agency handle like @someagency and I\'ll scan it, or ask me anything.',
-      engine: 'elastic-fallback',
-    },
-  ]);
+  const [items, setItems] = useState<ChatItem[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [workingAgents, setWorkingAgents] = useState<KiboAgentId[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const started = items.some((i) => i.kind === 'user');
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [items, workingAgents]);
 
-  const send = async () => {
-    const q = input.trim();
+  const send = async (override?: string) => {
+    const q = (override ?? input).trim();
     if (!q || loading) return;
 
     setItems((prev) => [...prev, { kind: 'user', content: q }]);
@@ -256,8 +258,57 @@ export default function Kibo({ nationality, destination, purpose, onInvestigatio
         </div>
       </div>
 
+      {!started ? (
+        /* Empty state: floating centered composer */
+        <div className="flex-1 flex flex-col items-center justify-center px-6 min-h-0">
+          <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center mb-4">
+            <Sparkle size={26} weight="fill" className="text-primary" />
+          </div>
+          <h2 className="text-lg font-bold text-center">How can I help you migrate safely?</h2>
+          <p className="text-xs text-muted-foreground text-center mt-2 max-w-[380px] leading-relaxed">
+            I coordinate Inspector (fraud checks) and Advisor (official policy). Ask anything, or drop an{' '}
+            <span className="text-primary font-medium">@agency</span> handle and I'll scan it.
+          </p>
+          <form
+            onSubmit={(e) => { e.preventDefault(); send(); }}
+            className="w-full max-w-[480px] mt-7 flex items-center gap-2"
+          >
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask Kibo, or drop an @agency handle..."
+              disabled={loading}
+              autoFocus
+              className="flex-1 h-12 rounded-xl border border-input bg-card px-4 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring shadow-sm"
+            />
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="h-12 w-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
+            >
+              <PaperPlaneRight size={18} weight="bold" />
+            </button>
+          </form>
+          <div className="flex flex-wrap gap-2 justify-center mt-4 max-w-[480px]">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                onClick={() => send(s)}
+                disabled={loading}
+                className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground font-mono mt-7">
+            Context: {nationality}→{destination} · {purpose}
+          </p>
+        </div>
+      ) : (
+      <>
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 mx-auto w-full max-w-[660px]">
         {items.map((item, i) => {
           if (item.kind === 'user') {
             return (
@@ -335,31 +386,33 @@ export default function Kibo({ nationality, destination, purpose, onInvestigatio
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-2 border-t">
+      {/* Input docked (follow-up) */}
+      <div className="p-3 border-t">
         <form
           onSubmit={(e) => { e.preventDefault(); send(); }}
-          className="flex items-center gap-1.5"
+          className="flex items-center gap-2 mx-auto w-full max-w-[660px]"
         >
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask, or drop an @agency handle..."
+            placeholder="Ask a follow-up, or drop an @agency handle..."
             disabled={loading}
-            className="flex-1 h-8 rounded-lg border border-input bg-card px-3 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+            className="flex-1 h-10 rounded-xl border border-input bg-card px-4 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
+            className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
           >
-            <PaperPlaneRight size={14} weight="bold" />
+            <PaperPlaneRight size={16} weight="bold" />
           </button>
         </form>
-        <p className="text-[9px] text-muted-foreground mt-1 font-mono text-center">
+        <p className="text-[9px] text-muted-foreground mt-1.5 font-mono text-center">
           Context: {nationality}→{destination} · {purpose}
         </p>
       </div>
+      </>
+      )}
     </div>
   );
 }

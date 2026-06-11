@@ -520,7 +520,7 @@ export default function App() {
         </div>
 
         {/* ── Kibo: full-height right sidebar ── */}
-        <aside className="w-[340px] border-l shrink-0 flex flex-col">
+        <aside className="w-[420px] xl:w-[480px] border-l shrink-0 flex flex-col">
           <Kibo
             nationality={nationality}
             destination={selectedDest}
