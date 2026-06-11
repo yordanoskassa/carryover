@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch, CaretDown, Database, FileText, Detective, Megaphone } from '@phosphor-icons/react';
+import { MagnifyingGlass, Warning, GraduationCap, Briefcase, UsersThree, AirplaneTilt, Sparkle, PaperPlaneRight, CircleNotch, CaretDown, Database, FileText, Detective, Megaphone, SignOut } from '@phosphor-icons/react';
 
 // Official Elastic mark (multicolor) — header co-branding.
 function ElasticIcon({ size = 18, className = '' }: { size?: number; className?: string }) {
@@ -242,6 +242,16 @@ export default function App() {
             >
               <Database size={12} weight="bold" />
               Elastic Data
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('co_name');
+                window.location.reload();
+              }}
+              title="Log out — clears your name and starts over"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <SignOut size={14} weight="bold" />
             </button>
           </div>
         </div>
