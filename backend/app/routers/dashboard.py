@@ -243,23 +243,39 @@ async def get_visa_overview(nationality: str = "ET", purpose: str = "student"):
         "ZA": 61,
     }
 
+    # Origin penalty — refusal rates differ sharply by passport. Calibrated to
+    # the relative ordering of published Schengen/UK refusal statistics for
+    # our origin countries; unknown origins get a mild default.
+    ORIGIN_PENALTY = {
+        "NG": 20, "PK": 19, "GH": 18, "BD": 17, "ET": 16,
+        "KE": 13, "NP": 12, "EG": 12, "PH": 9, "IN": 8,
+    }
+    # Purpose shifts mirror real-world difficulty for these corridors:
+    # student routes are structured and most attainable, tourist visas get
+    # refused on presumed immigration intent, work permits are gated, and
+    # general/family immigration is the hardest.
+    PURPOSE_SHIFT = {"student": 8, "tourist": 2, "work": -12, "family": -18}
+    # The passport matters less on student routes (sponsoring institution
+    # carries weight) and more when officers weigh settlement intent.
+    PURPOSE_ORIGIN_AMP = {"student": 0.7, "tourist": 1.2, "work": 1.25, "family": 1.1}
+
+    origin_pen = ORIGIN_PENALTY.get(nationality, 6) * PURPOSE_ORIGIN_AMP.get(purpose, 1.0)
+
     entries = []
     for dest in destinations:
         policies = policy_counts.get(dest, 0)
         scams = scam_counts.get(dest, 0)
 
-        # Openness prior + how well we can guide on it (structured coverage,
-        # crawl breadth) − scam pressure ± a stable corridor+purpose nudge so
-        # the same destination reads differently per nationality AND purpose.
-        # Purpose shifts mirror real-world difficulty: tourist visas are the
-        # most granted, work visas the most gated.
-        PURPOSE_SHIFT = {"student": 3, "work": -8, "family": -4, "tourist": 7}
-        base = BASE_OPENNESS.get(dest, 55) + PURPOSE_SHIFT.get(purpose, 0)
+        # Openness prior − origin penalty + purpose shift + how well we can
+        # guide on it (structured coverage, crawl breadth) − scam pressure
+        # ± a stable corridor+purpose nudge so the same destination reads
+        # differently per nationality AND purpose.
+        base = BASE_OPENNESS.get(dest, 55) - origin_pen + PURPOSE_SHIFT.get(purpose, 0)
         policy_score = min((policies / max_policies * 8) if max_policies else 4, 8)
         coverage_boost = min(structured_counts.get(dest, 0), 3) * 4
         scam_penalty = min((scams / max_scams * 18) if max_scams else 0, 18)
-        jitter = zlib.crc32(f"{nationality}->{dest}:{purpose}".encode()) % 11 - 5
-        score = max(5, min(96, int(base + policy_score + coverage_boost - scam_penalty + jitter)))
+        jitter = zlib.crc32(f"{nationality}->{dest}:{purpose}".encode()) % 19 - 9
+        score = max(8, min(94, int(base + policy_score + coverage_boost - scam_penalty + jitter)))
 
         if score >= 65:
             label = "Open"
