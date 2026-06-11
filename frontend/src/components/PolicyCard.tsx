@@ -40,7 +40,7 @@ export default function PolicyCard({
       </div>
 
       {/* Stat row */}
-      <div className="grid grid-cols-3 divide-x divide-border border-b">
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border border-b">
         <div className="px-3 py-2 flex items-center gap-1.5">
           <CurrencyDollar size={14} className="text-primary shrink-0" />
           <div className="min-w-0">

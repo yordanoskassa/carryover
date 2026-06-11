@@ -95,11 +95,13 @@ export default function App() {
   const [kiboInput, setKiboInput] = useState('');
   const [kiboBusy, setKiboBusy] = useState(false);
   const [kiboStarted, setKiboStarted] = useState(false);
+  const [mobileKiboOpen, setMobileKiboOpen] = useState(false);
 
   const askKibo = (q?: string) => {
     const question = (q ?? kiboInput).trim();
     if (!question || kiboBusy) return;
     setKiboStarted(true);
+    setMobileKiboOpen(true);
     setKiboInput('');
     // Defer one tick so the sidebar (and Kibo's ref) mounts on first prompt.
     setTimeout(() => kiboRef.current?.ask(question), 50);
@@ -175,21 +177,21 @@ export default function App() {
       <NewsTicker nationality={nationality} />
 
       {/* ── Body: left content + Kibo full-height right ── */}
-      <div className="flex-1 min-h-0 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden relative">
         {/* Left: everything */}
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
           {/* ── Hero grid: Globe | Greeting+Selectors / Purpose tabs ── */}
           <div className="border-b shrink-0">
-            <div className="grid grid-cols-[180px_1fr] divide-x divide-border">
-              {/* Globe cell - spans 2 rows */}
-              <div className="row-span-2 flex items-center justify-center bg-card/30 p-2">
+            <div className="grid grid-cols-1 lg:grid-cols-[180px_1fr] lg:divide-x divide-border">
+              {/* Globe cell - spans 2 rows (hidden on mobile to save space) */}
+              <div className="hidden lg:flex row-span-2 items-center justify-center bg-card/30 p-2">
                 <Globe nationality={nationality} destination={selectedDest} />
               </div>
 
               {/* Greeting + inline origin picker + destination */}
-              <div className="px-5 py-3 border-b">
-                <div className="flex items-center justify-between">
+              <div className="px-4 lg:px-5 py-3 border-b">
+                <div className="flex flex-wrap items-center justify-between gap-y-2">
                   <div>
                     <h1 className="text-xl font-bold leading-tight">
                       Hello, {name} {countryFlag(nationality)}
@@ -250,8 +252,8 @@ export default function App() {
 
           {/* ── Tab nav + stats ── */}
           <div className="border-b shrink-0">
-            <div className="mx-auto px-5 flex items-center h-10 justify-between">
-              <nav className="flex items-center gap-6 h-full">
+            <div className="mx-auto px-3 lg:px-5 flex items-center h-10 justify-between gap-3">
+              <nav className="flex items-center gap-4 lg:gap-6 h-full overflow-x-auto no-scrollbar shrink min-w-0">
                 {([
                   ['destinations', 'DESTINATIONS'],
                   ['agency', 'BAD AGENCY WATCH'],
@@ -272,7 +274,7 @@ export default function App() {
                 ))}
               </nav>
 
-              <div className="flex items-center divide-x divide-border">
+              <div className="hidden md:flex items-center divide-x divide-border shrink-0">
                 {[
                   { label: 'INDEXED', value: visaData?.destinations.length ?? 0, color: 'text-primary' },
                   { label: 'FLAGGED', value: stats.flaggedAgencies, color: 'text-red-400' },
@@ -295,8 +297,8 @@ export default function App() {
             {/* DESTINATIONS */}
             {activeTab === 'destinations' && (
               <div className="h-full flex">
-                {/* Country list */}
-                <div className="w-[240px] border-r flex flex-col shrink-0">
+                {/* Country list (hidden on mobile — use the Destination dropdown) */}
+                <div className="hidden lg:flex w-[240px] border-r flex-col shrink-0">
                   <div className="px-2 py-1.5 border-b">
                     <div className="flex items-center gap-1.5 h-7 rounded border border-input bg-card px-2">
                       <MagnifyingGlass size={12} className="text-muted-foreground shrink-0" />
@@ -343,7 +345,7 @@ export default function App() {
                   </div>
 
                   {/* Stats grid */}
-                  <div className="grid grid-cols-4 divide-x divide-border border-b">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-border border-b">
                     <div className="px-4 py-2.5">
                       <div className="text-[10px] font-mono text-muted-foreground uppercase">Fee</div>
                       <div className="text-base font-bold tabular-nums">
@@ -533,9 +535,20 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Kibo: output-only side panel, appears once a conversation starts ── */}
+        {/* ── Kibo: side panel on desktop, full-screen overlay on mobile ── */}
         {kiboStarted && (
-          <aside className="w-[420px] xl:w-[480px] border-l shrink-0 flex flex-col">
+          <aside
+            className={`border-l bg-background flex-col lg:relative lg:flex lg:w-[420px] xl:w-[480px] lg:shrink-0 ${
+              mobileKiboOpen ? 'absolute inset-0 z-40 flex' : 'hidden lg:flex'
+            }`}
+          >
+            <button
+              onClick={() => setMobileKiboOpen(false)}
+              className="lg:hidden flex items-center gap-1.5 px-4 py-3 border-b text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              <CaretDown size={14} weight="bold" className="rotate-90" />
+              Back to dashboard
+            </button>
             <Kibo
               ref={kiboRef}
               nationality={nationality}
@@ -549,7 +562,7 @@ export default function App() {
       </div>
 
       {/* ── Kibo command bar: floating, bottom-center of the app ── */}
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 w-[min(720px,calc(100%-3rem))] flex flex-col items-center gap-2.5 pointer-events-none">
+      <div className="absolute bottom-4 lg:bottom-5 left-1/2 -translate-x-1/2 z-50 w-[min(720px,calc(100%-1.5rem))] flex flex-col items-center gap-2.5 pointer-events-none">
         {!kiboStarted && (
           <div className="flex flex-wrap gap-2 justify-center pointer-events-auto">
             {[
