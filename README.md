@@ -24,6 +24,38 @@ Carryover runs a team of AI agents, orchestrated by **Kibo**:
   runs them, and synthesizes the result. Confirmed scams and scanned agencies are
   written **back** into Elasticsearch, so every check makes the system smarter.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    user([User]) --> fe["React + Vite frontend\n(nginx)"]
+    fe -- "/api/*" --> api["FastAPI backend"]
+
+    subgraph orch ["Kibo — orchestrator"]
+        api --> kibo{"Gemini router"}
+        kibo --> advisor["Advisor\nofficial visa policy"]
+        kibo --> inspector["Inspector\nfraud detection"]
+        kibo --> reporter["Reporter\nwarnings + complaints"]
+    end
+
+    advisor -- "ELSER semantic search" --> es[("Elasticsearch\nvisa-policies · known-scams\nagency-posts · structured-policies")]
+    inspector -- "ELSER + ES&#124;QL identity reuse" --> es
+    reporter -- "community write-back" --> es
+    reporter -- "complaint email" --> resend["Resend"]
+    kibo <--> gemini["Gemini\nrouting · synthesis · grounding"]
+
+    subgraph ingest ["Ingestion"]
+        crawler["Elastic Open Crawler\n(official gov sites)"] --> es
+        telegram["Telegram agency channels"] --> es
+        cfpb["CFPB fraud database"] --> es
+        firecrawl["Firecrawl\n(news + enrichment)"] --> es
+    end
+```
+
+Every chat turn flows **frontend → Kibo → Gemini routing → specialist agents →
+Elasticsearch → Gemini synthesis**, and confirmed scams are written back into
+Elasticsearch so the next check is smarter.
+
 ## How it uses the partner tech
 
 **Elastic** is the system of record and the search/agent layer:
@@ -113,6 +145,63 @@ python scripts/ingest_cfpb_api.py          # CFPB fraud narratives
 # Crawl official pages (requires Docker):
 bash crawler/run_all.sh
 ```
+
+## Deploying on EasyPanel
+
+Both services build from this repo — each has its own `Dockerfile`
+([backend/Dockerfile](backend/Dockerfile), [frontend/Dockerfile](frontend/Dockerfile)).
+The frontend's nginx proxies `/api/*` to the backend inside the project network,
+so only the frontend needs a public domain and no CORS setup is required.
+
+### 1. Backend service
+Project → **+ Service → App**, name it **`backend`**:
+
+| Tab | Setting | Value |
+| --- | --- | --- |
+| Source | GitHub repo | `yordanoskassa/carryover`, branch `main` |
+| Source | Build path | `/backend` |
+| Build | Builder | **Dockerfile** (path `./Dockerfile`) |
+| Domains | — | none needed (internal-only) |
+
+**Environment** tab:
+```
+ELASTICSEARCH_URL=https://<your-project>.es.<region>.gcp.elastic.cloud
+ELASTICSEARCH_API_KEY=<encoded key>
+KIBANA_URL=https://<your-project>.kb.<region>.gcp.elastic.cloud
+AGENT_BUILDER_API_KEY=<encoded key>
+GEMINI_API_KEY=<your gemini key>
+
+# optional — Reporter email delivery (without it, complaints stay as drafts)
+RESEND_API_KEY=<resend key>
+REPORT_TO_EMAIL=<inbox that receives complaints>
+```
+
+### 2. Frontend service
+**+ Service → App**, name it **`frontend`**:
+
+| Tab | Setting | Value |
+| --- | --- | --- |
+| Source | GitHub repo | same repo, branch `main` |
+| Source | Build path | `/frontend` |
+| Build | Builder | **Dockerfile** (path `./Dockerfile`) |
+| Domains | Domain | your domain (or let EasyPanel generate one), **proxy port 80**, HTTPS on |
+
+**Environment** tab:
+```
+BACKEND_URL=http://backend:8001
+```
+(Services in the same project resolve each other by service name. If you named
+the service differently, point `BACKEND_URL` at that name — or at
+`http://<project>_<service>:8001` if the plain name doesn't resolve.)
+
+### 3. First-time setup
+After both services deploy, register the indices, tools, and agents once:
+```bash
+curl -X POST https://<your-domain>/api/setup
+```
+
+To redeploy on every push, enable **Auto Deploy** in each service's GitHub
+settings (or add the deploy webhook to the repo).
 
 ## Known follow-ups
 - Versioned index names + aliases for zero-downtime reindexing.

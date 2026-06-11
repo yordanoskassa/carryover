@@ -1,0 +1,21 @@
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Same-origin API: the browser calls /api/... here and nginx forwards the
+    # full path to the FastAPI service (so no CORS configuration is needed).
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Kibo turns call Gemini + live Telegram scans — allow slow responses.
+        proxy_read_timeout 300s;
+    }
+
+    # SPA fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

@@ -331,9 +331,6 @@ export default function App() {
                     {label}
                   </button>
                 ))}
-                <span className="hidden xl:inline text-[11px] text-muted-foreground normal-case font-sans shrink-0">
-                  three agents, one orchestrator
-                </span>
               </nav>
 
               <div className="hidden md:flex items-center divide-x divide-border shrink-0">
