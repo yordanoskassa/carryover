@@ -1,0 +1,18 @@
+# Netlify config — deploys the frontend; /api/* is proxied to the live backend.
+[build]
+  base    = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# Same-origin API proxy (status 200 = rewrite, so no CORS needed).
+[[redirects]]
+  from   = "/api/*"
+  to     = "https://anton-carryover.hrvnvm.easypanel.host/api/:splat"
+  status = 200
+  force  = true
+
+# SPA fallback
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

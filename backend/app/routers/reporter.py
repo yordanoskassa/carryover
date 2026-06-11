@@ -21,7 +21,6 @@ from app.models.schemas import (
     ReporterFileRequest, ReporterFileResponse,
     ComplaintDraft, DeliveryStatus,
 )
-from app.config import get_settings
 from app.services.elastic import es
 from app.services import gemini, notify
 
@@ -150,11 +149,12 @@ async def file_report(req: ReporterFileRequest):
     )
 
     # ── 3. Actually send it through the outbound channel ──────────────────
-    # With REPORT_SEND_TO_AUTHORITY on, the complaint goes straight to the
-    # authority's reporting inbox (record copy BCC'd to REPORT_TO_EMAIL);
-    # otherwise it stays in the configured inbox, ready to forward.
-    authority_email = (
-        authority.get("email") if get_settings().report_send_to_authority else None
+    # Recipient resolution: the authority's known reporting inbox, else a
+    # Gemini grounded lookup of the officially published address. Portal-only
+    # authorities (no public email) fall back to the record-copy inbox, with
+    # the letter ready to file through their portal.
+    authority_email = authority.get("email") or await gemini.find_authority_email(
+        req.destination or "", authority["name"],
     )
     delivery_raw = await notify.send_email(
         to=authority_email or None,

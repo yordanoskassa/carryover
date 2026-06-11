@@ -312,6 +312,64 @@ async def rate_post(post_text: str, corridor: str) -> dict | None:
         return None
 
 
+AUTHORITY_EMAIL_PROMPT = """Using Google Search, find the official PUBLIC email address for
+reporting visa/immigration fraud or scams to the responsible authority of {destination_name}
+(authority: {authority}). Only accept an address published on an official government or
+embassy website (.gov, .gov.xx, official ministry domains).
+
+Return ONLY a JSON object (no markdown, no prose):
+- email (string, or null if the authority only accepts reports via a web portal)
+- source_url (string — the official page where the address is published, or null)
+
+If you cannot find an officially published reporting email, return null for email. Never guess."""
+
+_EMAIL_RE = None
+
+
+def _valid_email(addr: str) -> bool:
+    global _EMAIL_RE
+    if _EMAIL_RE is None:
+        import re
+        _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+    return bool(_EMAIL_RE.match(addr or ""))
+
+
+_authority_email_cache: dict[str, str | None] = {}
+
+
+async def find_authority_email(destination: str, authority: str) -> str | None:
+    """Grounded lookup of the authority's official fraud-reporting email.
+
+    Cached per destination; returns None when no officially published
+    address exists (many authorities are portal-only) or on any failure.
+    """
+    if not available() or not destination:
+        return None
+    key = destination.strip().upper()
+    if key in _authority_email_cache:
+        return _authority_email_cache[key]
+    try:
+        from google.genai import types
+        client = _get_client()
+        resp = await client.aio.models.generate_content(
+            model=settings.gemini_model,
+            contents=AUTHORITY_EMAIL_PROMPT.format(
+                destination_name=key, authority=authority,
+            ),
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=0.0,
+            ),
+        )
+        data = _extract_json(resp.text or "") or {}
+        email = (data.get("email") or "").strip()
+        result = email if _valid_email(email) else None
+    except Exception:
+        result = None
+    _authority_email_cache[key] = result
+    return result
+
+
 COMPLAINT_PROMPT = """You are drafting a formal fraud complaint on behalf of a migrant who was
 targeted by a fraudulent visa agency. The complaint will be filed with {authority}.
 

@@ -28,11 +28,7 @@ class Settings(BaseSettings):
     # warning and returns the drafted complaint (delivery reports "draft").
     resend_api_key: str = ""
     report_from_email: str = "Carryover Reporter <onboarding@resend.dev>"
-    report_to_email: str = ""  # community/reports inbox that receives complaints
-    # When true, complaints go to the responsible authority's email (your
-    # inbox is BCC'd as the record copy). Off by default so demo clicks
-    # don't hit real government desks. Needs a verified Resend domain.
-    report_send_to_authority: bool = False
+    report_to_email: str = ""  # record-copy inbox (BCC'd on authority sends)
 
     model_config = {"env_file": str(_ENV_FILE), "env_file_encoding": "utf-8"}
 

@@ -10,9 +10,10 @@ Degrades gracefully: with no RESEND_API_KEY set the function returns
 `delivered=False, channel="draft"` and the caller still files the Elastic
 warning and hands the drafted complaint back to the user — nothing breaks.
 
-Safety: complaints are delivered to a configured reports inbox
-(REPORT_TO_EMAIL), not auto-blasted to government desks. The letter is
-*addressed* to the right authority and ready for the user to forward.
+Delivery: complaints go to the authority's officially published reporting
+email when one exists (known map, else a Gemini grounded lookup), with the
+configured REPORT_TO_EMAIL BCC'd as the record copy. Portal-only authorities
+fall back to the record-copy inbox with the letter ready to file.
 """
 
 import html as html_mod
