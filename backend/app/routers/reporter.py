@@ -60,6 +60,40 @@ def _template_complaint(authority: str, req: ReporterFileRequest) -> str:
     )
 
 
+@router.get("/test-email")
+async def test_email(to: str):
+    """Debug: send a mock complaint email to `to` and return Resend's verdict.
+
+    curl "https://<backend>/api/reporter/test-email?to=you@example.com"
+    """
+    logger.info("test_email: sending mock complaint to %s", to)
+    delivery = await notify.send_email(
+        to=to,
+        subject="Carryover Reporter — test email (CR-TEST-000000)",
+        body=(
+            "This is a test of the Carryover Reporter email channel.\n\n"
+            "If you are reading this, RESEND_API_KEY is working and delivery "
+            "to this address succeeds."
+        ),
+        html=notify.complaint_html(
+            case_ref="CR-TEST-000000",
+            filed_at="test run",
+            corridor="GH->GB",
+            risk_score=88,
+            verdict="TEST",
+            agency_name="Mock Agency (test)",
+            handle="mock_agency",
+            phone="+000 000 0000",
+            authority_name="Carryover email channel test",
+            authority_portal="",
+            evidence=["This is a synthetic test email", "No report was filed"],
+            letter="This is a test of the Carryover Reporter email channel. No action needed.",
+        ),
+    )
+    logger.info("test_email: result %s", delivery)
+    return {"to": to, "delivery": delivery}
+
+
 @router.get("/recent")
 async def recent_reports(size: int = 20):
     """Community-filed reports (Reporter actions + user write-backs), newest first.
