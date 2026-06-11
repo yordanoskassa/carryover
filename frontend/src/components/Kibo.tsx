@@ -58,6 +58,8 @@ const EVIDENCE_ICONS: Record<string, typeof Warning> = {
   SEMANTIC_MATCH: Warning,
   POLICY_CONTRADICTION: FileX,
   IDENTITY_REUSE: Phone,
+  INFORMAL_CHANNEL: Phone,
+  AI_ASSESSMENT: Sparkle,
 };
 
 function verdictClasses(verdict: string) {

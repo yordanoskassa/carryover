@@ -18,6 +18,9 @@ const EVIDENCE_LABELS: Record<string, string> = {
   POLICY_CONTRADICTION: 'Contradiction',
   IDENTITY_REUSE: 'ID Reuse',
   CATEGORY_MATCH: 'Category',
+  FRAUD_SIGNAL: 'Red flag',
+  INFORMAL_CHANNEL: 'Informal channel',
+  AI_ASSESSMENT: 'Gemini rating',
 };
 
 function getBadgeVariant(type: string): 'default' | 'secondary' | 'destructive' | 'outline' {

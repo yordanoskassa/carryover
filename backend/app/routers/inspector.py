@@ -8,7 +8,7 @@ from app.models.schemas import (
     ScamReport, ScamReportResponse,
 )
 from app.services.elastic import es, search_semantic, bulk_index
-from app.services import agent_builder, telegram
+from app.services import agent_builder, gemini, telegram
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/inspector", tags=["inspector"])
@@ -65,6 +65,37 @@ async def evaluate_agency(req: InspectorRequest):
             confidence=round(0.55 + w / 2, 2),
         ))
 
+    # ── 0b. Informal-channel baseline (always on, language-independent) ───
+    # Selling visas over Telegram via personal phone numbers is inherently
+    # risky even with no explicit false claim — embassies never work this way.
+    # This keeps non-English posts from scoring zero when the phrase regexes
+    # (English-only) miss.
+    text = req.post_text or ""
+    has_phone = bool(_re.search(r"\+?\d[\d\s().-]{7,}\d", text))
+    sells_visa = bool(_re.search(r"visa|umrah|work permit|iqama|ticket.*visa", text, _re.I))
+    if sells_visa and has_phone:
+        probs.append(0.22)
+        evidence.append(EvidenceItem(
+            type="INFORMAL_CHANNEL",
+            description=(
+                "Markets visas through Telegram with a personal phone number — "
+                "official visa routes never sell this way."
+            ),
+            source="channel analysis",
+            confidence=0.7,
+        ))
+
+    # ── 0c. Gemini AI rating (every post gets a calibrated score) ─────────
+    ai = await gemini.rate_post(text, req.corridor or "")
+    if ai:
+        probs.append((ai["risk"] / 100) * 0.65)
+        evidence.append(EvidenceItem(
+            type="AI_ASSESSMENT",
+            description=f"Gemini rates this {ai['risk']}/100: {ai['reason']}",
+            source="gemini",
+            confidence=round(0.5 + ai["risk"] / 250, 2),
+        ))
+
     # ── 1. Semantic match against known scams (ELSER) ─────────────────────
     # On this corpus ELSER similarity sits ~0.68-0.83 for almost any visa text,
     # so it's a weak standalone discriminator: we show the match as evidence but
@@ -95,7 +126,7 @@ async def evaluate_agency(req: InspectorRequest):
     if top_score > BASELINE:
         p_sem = min((top_score - BASELINE) / 0.18, 1.0) * 0.28
         p_sem *= 1.0 if signals else 0.5
-        if p_sem > 0.02:
+        if p_sem > 0.005:
             probs.append(p_sem)
 
     # ── 2. Policy contradiction check ─────────────────────────────────────

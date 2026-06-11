@@ -64,11 +64,19 @@ async def fetch_channel(handle: str, limit: int = 10) -> dict:
 
     title_el = soup.select_one(".tgme_channel_info_header_title")
     desc_el = soup.select_one(".tgme_channel_info_description")
+    title = title_el.get_text(strip=True) if title_el else handle
 
     posts = []
     for msg in messages[-limit:]:
         text = msg.get_text(separator=" ", strip=True)
         if not text or len(text) < 20:
+            continue
+        # Skip service rows: "X pinned Deleted message", bare channel-name
+        # posts — they carry no claim to score and clutter the scan.
+        low = text.lower()
+        if "deleted message" in low:
+            continue
+        if low.replace(" ", "") == title.lower().replace(" ", ""):
             continue
         date_el = msg.find_parent(class_="tgme_widget_message_bubble")
         date = None
@@ -84,7 +92,7 @@ async def fetch_channel(handle: str, limit: int = 10) -> dict:
 
     return {
         "handle": handle,
-        "title": title_el.get_text(strip=True) if title_el else handle,
+        "title": title,
         "description": desc_el.get_text(strip=True) if desc_el else None,
         "posts": posts,
     }

@@ -246,6 +246,60 @@ async def narrate_scan(question: str, handle: str, scan: dict) -> str | None:
         return None
 
 
+RATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "risk": {"type": "integer", "description": "Fraud risk 0-100."},
+        "reason": {"type": "string", "description": "One short plain-English sentence justifying the score."},
+    },
+    "required": ["risk", "reason"],
+}
+
+RATE_PROMPT = """You rate visa/travel agency posts for fraud risk on a 0-100 scale. Rate EVERY
+post — never refuse, never default to 0. The post may be in any language
+(Amharic, Hindi, Tagalog...); rate it regardless.
+
+Calibration:
+- 0-15: clearly benign, non-visa content (greetings, hotel-only ads, holiday wishes).
+- 20-45: informal visa selling — visas marketed over Telegram/WhatsApp via personal
+  phone numbers. Legitimate embassies and governments NEVER sell visas this way,
+  so this is inherently risky even with no explicit false claim.
+- 50-75: suspicious claims on top of informal selling: vague "visa available now",
+  unusually fast processing, prices for visas that officially work differently.
+- 80-100: hard fraud markers: guaranteed approval, no documents/interview needed,
+  upfront payment via informal channels (cash, M-Pesa, hawala, Western Union).
+
+Corridor context: {corridor}
+
+POST:
+{post}"""
+
+
+async def rate_post(post_text: str, corridor: str) -> dict | None:
+    """Calibrated 0-100 fraud rating with a one-line reason. None on failure."""
+    if not available() or not (post_text or "").strip():
+        return None
+    try:
+        client = _get_client()
+        resp = await client.aio.models.generate_content(
+            model=settings.gemini_model,
+            contents=RATE_PROMPT.format(
+                corridor=corridor or "unspecified",
+                post=post_text[:1500],
+            ),
+            config={
+                "response_mime_type": "application/json",
+                "response_json_schema": RATE_SCHEMA,
+            },
+        )
+        data = json.loads(resp.text)
+        risk = max(0, min(100, int(data.get("risk", 0))))
+        reason = (data.get("reason") or "").strip()
+        return {"risk": risk, "reason": reason} if reason else None
+    except Exception:
+        return None
+
+
 COMPLAINT_PROMPT = """You are drafting a formal fraud complaint on behalf of a migrant who was
 targeted by a fraudulent visa agency. The complaint will be filed with {authority}.
 
