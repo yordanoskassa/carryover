@@ -63,12 +63,12 @@ export default function Globe({ nationality, destination }: GlobeProps) {
       phi: startPhi,
       theta: 0.28,
       dark: 1,
-      diffuse: 2.4,
-      mapSamples: 32000,
-      mapBrightness: 9,
-      baseColor: [0.16, 0.24, 0.27],
-      markerColor: [0.1, 1, 0.78],
-      glowColor: [0.04, 0.5, 0.42],
+      diffuse: 3,
+      mapSamples: 40000,
+      mapBrightness: 12,
+      baseColor: [0.2, 0.32, 0.34],
+      markerColor: [0.15, 1, 0.82],
+      glowColor: [0.05, 0.55, 0.46],
       markers,
     });
 
@@ -94,16 +94,16 @@ export default function Globe({ nationality, destination }: GlobeProps) {
   }, [nationality, destination]);
 
   return (
-    <div className="relative w-full flex items-center justify-center" style={{ maxWidth: 180 }}>
+    <div className="relative w-full flex items-center justify-center" style={{ maxWidth: 168 }}>
       {/* soft halo behind the globe */}
       <div
         aria-hidden
-        className="absolute inset-[8%] rounded-full bg-primary/20 blur-2xl"
+        className="absolute inset-[2%] rounded-full bg-primary/25 blur-[28px]"
       />
       <canvas
         ref={canvasRef}
         className="relative w-full aspect-square"
-        style={{ contain: 'layout paint size', maxWidth: 180 }}
+        style={{ contain: 'layout paint size', maxWidth: 168 }}
       />
     </div>
   );

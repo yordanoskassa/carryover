@@ -25,7 +25,7 @@ export default function ElasticData() {
   const b = data.structured_breakdown;
 
   return (
-    <div className="p-4 overflow-y-auto h-full space-y-4">
+    <div className="p-4 pb-28 overflow-y-auto h-full space-y-4">
       {/* Headline */}
       <div className="flex items-center justify-between border rounded-lg p-4 bg-card/40">
         <div className="flex items-center gap-3">

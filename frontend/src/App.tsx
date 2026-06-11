@@ -228,19 +228,19 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Purpose nav as grid cells */}
-              <div className="grid grid-cols-4 divide-x divide-border">
+              {/* Purpose toggle — segmented control */}
+              <div className="grid grid-cols-4 gap-1.5 px-2 bg-card/30 items-center">
                 {Object.entries(PURPOSE_META).map(([key, { icon: Icon, label }]) => (
                   <button
                     key={key}
                     onClick={() => setDetailPurpose(key)}
-                    className={`flex items-center justify-center gap-1.5 py-2 text-[11px] font-mono uppercase tracking-wider border-b-2 transition-colors ${
+                    className={`flex items-center justify-center gap-1.5 h-9 rounded-md text-[11px] font-mono uppercase tracking-wider transition-colors ${
                       detailPurpose === key
-                        ? 'bg-primary/10 text-primary font-semibold border-primary'
-                        : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-card/50'
+                        ? 'bg-primary/15 text-primary font-semibold ring-1 ring-primary/30'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     }`}
                   >
-                    <Icon size={13} weight={detailPurpose === key ? 'fill' : 'regular'} />
+                    <Icon size={14} weight={detailPurpose === key ? 'fill' : 'regular'} />
                     {label}
                   </button>
                 ))}
@@ -319,7 +319,7 @@ export default function App() {
                 </div>
 
                 {/* Detail panel */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto pb-28">
                   {/* Country header + acceptance */}
                   <div className="border-b px-5 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -501,7 +501,7 @@ export default function App() {
 
             {/* AGENCY WATCH */}
             {activeTab === 'agency' && (
-              <div className="p-4 overflow-y-auto h-full space-y-3">
+              <div className="p-4 pb-28 overflow-y-auto h-full space-y-3">
                 {investigation && (
                   <AgencyInvestigation
                     data={investigation}
@@ -524,7 +524,7 @@ export default function App() {
 
             {/* VISA PATHWAYS */}
             {activeTab === 'pathways' && (
-              <div className="p-4 overflow-y-auto h-full">
+              <div className="p-4 pb-28 overflow-y-auto h-full">
                 <div className="border rounded-lg p-5">
                   <Advisor nationality={nationality} destination={selectedDest} />
                 </div>
@@ -569,29 +569,29 @@ export default function App() {
         )}
         <form
           onSubmit={(e) => { e.preventDefault(); askKibo(); }}
-          className="w-full flex items-center gap-2 rounded-2xl border border-primary/30 ring-1 ring-primary/10 bg-card backdrop-blur px-3 py-2 shadow-[0_0_30px_-6px_rgba(16,185,129,0.3),0_12px_36px_rgba(0,0,0,0.55)] pointer-events-auto"
+          className="w-full flex items-center gap-2.5 rounded-2xl border border-primary/45 bg-card px-3.5 py-2.5 shadow-[0_0_0_1px_rgba(16,185,129,0.12),0_0_34px_-4px_rgba(16,185,129,0.45),0_16px_44px_rgba(0,0,0,0.6)] pointer-events-auto transition-shadow focus-within:border-primary focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_0_44px_-2px_rgba(16,185,129,0.6),0_16px_44px_rgba(0,0,0,0.6)]"
         >
-          <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
             {kiboBusy
-              ? <CircleNotch size={14} className="text-primary animate-spin" />
-              : <Sparkle size={14} weight="fill" className="text-primary" />}
+              ? <CircleNotch size={15} className="text-primary animate-spin" />
+              : <Sparkle size={15} weight="fill" className="text-primary" />}
           </div>
           <input
             value={kiboInput}
             onChange={(e) => setKiboInput(e.target.value)}
-            placeholder={kiboBusy ? 'Kibo is working...' : 'Ask Kibo anything, or drop an @agency handle...'}
+            placeholder={kiboBusy ? 'Kibo is working...' : 'Ask Kibo anything, or drop an @agency handle…'}
             disabled={kiboBusy}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/80"
           />
-          <span className="text-[9px] text-muted-foreground font-mono hidden sm:inline shrink-0">
-            {nationality}→{selectedDest} · {detailPurpose}
+          <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline shrink-0 px-1.5 py-0.5 rounded bg-muted/60">
+            {nationality}→{selectedDest}
           </span>
           <button
             type="submit"
             disabled={kiboBusy || !kiboInput.trim()}
-            className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
+            className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 hover:brightness-110 transition-all"
           >
-            <PaperPlaneRight size={14} weight="bold" />
+            <PaperPlaneRight size={15} weight="bold" />
           </button>
         </form>
       </div>
