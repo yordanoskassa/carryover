@@ -15,6 +15,8 @@ Safety: complaints are delivered to a configured reports inbox
 *addressed* to the right authority and ready for the user to forward.
 """
 
+import html as html_mod
+
 import httpx
 
 from app.config import get_settings
@@ -73,7 +75,106 @@ def authority_for(destination: str | None) -> dict[str, str]:
     return GENERIC_AUTHORITY
 
 
-async def send_email(subject: str, body: str, reply_to: str | None = None) -> dict:
+def _esc(s: str | None) -> str:
+    return html_mod.escape(s or "")
+
+
+def complaint_html(
+    *,
+    case_ref: str,
+    filed_at: str,
+    corridor: str,
+    risk_score: int,
+    verdict: str,
+    agency_name: str | None,
+    handle: str | None,
+    phone: str | None,
+    authority_name: str,
+    authority_portal: str,
+    evidence: list[str],
+    letter: str,
+) -> str:
+    """Branded, inline-styled HTML for the outbound complaint email."""
+    id_rows = ""
+    for label, value in (
+        ("Agency", agency_name),
+        ("Handle", f"@{handle.lstrip('@')}" if handle else None),
+        ("Phone", phone),
+    ):
+        if value:
+            id_rows += (
+                f'<tr><td style="padding:6px 0;color:#64748b;font-size:13px;width:130px;">{label}</td>'
+                f'<td style="padding:6px 0;color:#0f172a;font-size:13px;font-weight:600;">{_esc(value)}</td></tr>'
+            )
+
+    ev_items = "".join(
+        f'<li style="margin:0 0 6px;color:#334155;font-size:13px;line-height:1.5;">{_esc(e)}</li>'
+        for e in evidence[:5]
+    ) or '<li style="margin:0;color:#334155;font-size:13px;">Multiple automated fraud signals.</li>'
+
+    portal_btn = (
+        f'<a href="{_esc(authority_portal)}" '
+        f'style="display:inline-block;margin-top:10px;padding:9px 16px;background:#0f172a;color:#ffffff;'
+        f'text-decoration:none;border-radius:6px;font-size:13px;font-weight:600;">Official reporting portal →</a>'
+        if authority_portal else ""
+    )
+
+    return f"""<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+<div style="max-width:580px;margin:24px auto;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;">
+
+  <div style="background:#0f172a;padding:22px 28px;">
+    <div style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:0.5px;">CARRYOVER</div>
+    <div style="color:#94a3b8;font-size:12px;margin-top:3px;">Reporter · automated visa-fraud complaint</div>
+  </div>
+
+  <div style="padding:24px 28px 8px;">
+    <table cellpadding="0" cellspacing="0" style="width:100%;border-bottom:1px solid #e2e8f0;padding-bottom:8px;">
+      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;width:130px;">Case reference</td>
+          <td style="padding:6px 0;color:#0f172a;font-size:13px;font-weight:700;">{_esc(case_ref)}</td></tr>
+      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;">Filed</td>
+          <td style="padding:6px 0;color:#0f172a;font-size:13px;">{_esc(filed_at)}</td></tr>
+      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;">Corridor</td>
+          <td style="padding:6px 0;color:#0f172a;font-size:13px;font-weight:600;">{_esc(corridor or "unspecified")}</td></tr>
+      <tr><td style="padding:6px 0;color:#64748b;font-size:13px;">Risk assessment</td>
+          <td style="padding:6px 0;">
+            <span style="display:inline-block;padding:3px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:999px;font-size:12px;font-weight:700;">{risk_score}/100 · {_esc(verdict)}</span>
+          </td></tr>
+      {id_rows}
+    </table>
+  </div>
+
+  <div style="padding:18px 28px 4px;">
+    <div style="color:#0f172a;font-size:14px;font-weight:700;margin-bottom:8px;">Formal complaint — addressed to {_esc(authority_name)}</div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #0f172a;border-radius:6px;padding:16px 18px;color:#334155;font-size:13px;line-height:1.65;white-space:pre-wrap;">{_esc(letter)}</div>
+  </div>
+
+  <div style="padding:18px 28px 4px;">
+    <div style="color:#0f172a;font-size:14px;font-weight:700;margin-bottom:8px;">Evidence from the automated check</div>
+    <ul style="margin:0;padding-left:18px;">{ev_items}</ul>
+  </div>
+
+  <div style="padding:18px 28px 24px;">
+    <div style="color:#64748b;font-size:12px;line-height:1.6;">
+      This complaint is addressed to <strong style="color:#0f172a;">{_esc(authority_name)}</strong> and ready to forward.
+    </div>
+    {portal_btn}
+  </div>
+
+  <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 28px;">
+    <div style="color:#94a3b8;font-size:11px;line-height:1.6;">
+      Filed via <strong>Carryover Reporter</strong> after a user-confirmed action ·
+      a community warning for this agency is now indexed in Elasticsearch.
+    </div>
+  </div>
+
+</div>
+</body></html>"""
+
+
+async def send_email(
+    subject: str, body: str, reply_to: str | None = None, html: str | None = None,
+) -> dict:
     """Deliver a complaint via Resend. Never raises — returns a status dict."""
     if not email_configured():
         return {
@@ -88,6 +189,8 @@ async def send_email(subject: str, body: str, reply_to: str | None = None) -> di
         "subject": subject,
         "text": body,
     }
+    if html:
+        payload["html"] = html
     if reply_to:
         payload["reply_to"] = reply_to
 

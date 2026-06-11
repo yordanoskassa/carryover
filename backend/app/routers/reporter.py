@@ -137,7 +137,9 @@ async def file_report(req: ReporterFileRequest):
     ) or _template_complaint(authority["address"], req)
 
     who = req.agency_name or (f"@{req.handle.lstrip('@')}" if req.handle else "an agency")
-    subject = f"Visa fraud report — {who} ({req.corridor or 'migration corridor'})"
+    now = datetime.now(timezone.utc)
+    case_ref = f"CR-{now.year}-{(doc_id or now.strftime('%H%M%S'))[:6].upper()}"
+    subject = f"Visa fraud report {case_ref} — {who} ({req.corridor or 'migration corridor'})"
 
     complaint = ComplaintDraft(
         to_authority=authority["name"],
@@ -149,7 +151,21 @@ async def file_report(req: ReporterFileRequest):
     # ── 3. Actually send it through the outbound channel ──────────────────
     delivery_raw = await notify.send_email(
         subject=subject,
-        body=body + f"\n\n— Filed via Carryover Reporter. Intended authority: {authority['name']}.",
+        body=body + f"\n\n— Filed via Carryover Reporter. Case {case_ref}. Intended authority: {authority['name']}.",
+        html=notify.complaint_html(
+            case_ref=case_ref,
+            filed_at=now.strftime("%d %B %Y, %H:%M UTC"),
+            corridor=req.corridor or "",
+            risk_score=req.risk_score,
+            verdict=req.verdict,
+            agency_name=req.agency_name,
+            handle=req.handle,
+            phone=req.phone,
+            authority_name=authority["name"],
+            authority_portal=authority["portal"],
+            evidence=req.evidence,
+            letter=body,
+        ),
         reply_to=req.reply_to,
     )
     delivery = DeliveryStatus(
