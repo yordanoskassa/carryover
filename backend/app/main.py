@@ -7,7 +7,7 @@ from app.services import agent_builder
 settings = get_settings()
 
 app = FastAPI(
-    title="ElastiPath API",
+    title="Carryover API",
     description="Protect migrants from fraudulent agencies. Powered by Elastic Agent Builder + Gemini.",
     version="0.1.0",
 )
@@ -33,7 +33,7 @@ app.include_router(reporter.router)
 @app.get("/")
 async def root():
     return {
-        "name": "ElastiPath",
+        "name": "Carryover",
         "tagline": "Your safe path to migrate.",
         "version": "0.1.0",
     }

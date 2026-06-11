@@ -93,9 +93,9 @@ async def get_a2a_card(agent_id: str) -> dict:
     return await _request("GET", f"/a2a/{agent_id}.json")
 
 
-# ── Tool Definitions for ElastiPath ───────────────────────────────────────
+# ── Tool Definitions for Carryover ───────────────────────────────────────
 
-ELASTIPATH_TOOLS = [
+CARRYOVER_TOOLS = [
     # --- Advisor tools ---
     {
         "id": "advisor.policy_lookup",
@@ -288,17 +288,17 @@ ELASTIPATH_TOOLS = [
 ]
 
 
-ELASTIPATH_AGENTS = [
+CARRYOVER_AGENTS = [
     {
-        "id": "elastipath-advisor",
-        "name": "ElastiPath Advisor",
+        "id": "carryover-advisor",
+        "name": "Carryover Advisor",
         "description": "Provides accurate, cited visa guidance for any nationality→destination route.",
-        "labels": ["elastipath", "advisor"],
+        "labels": ["carryover", "advisor"],
         "avatar_color": "#10B981",
         "avatar_symbol": "AD",
         "configuration": {
             "instructions": (
-                "You are ElastiPath Advisor. Give accurate visa guidance based ONLY on "
+                "You are Carryover Advisor. Give accurate visa guidance based ONLY on "
                 "official policy data in the visa-policies index. Rules:\n"
                 "- Never give legal advice. Say 'verify with the embassy' for edge cases.\n"
                 "- Always cite the source_url and last_updated date.\n"
@@ -310,15 +310,15 @@ ELASTIPATH_AGENTS = [
         },
     },
     {
-        "id": "elastipath-inspector",
-        "name": "ElastiPath Inspector",
+        "id": "carryover-inspector",
+        "name": "Carryover Inspector",
         "description": "Evaluates agency claims for scam risk with a cited evidence chain.",
-        "labels": ["elastipath", "inspector"],
+        "labels": ["carryover", "inspector"],
         "avatar_color": "#EF4444",
         "avatar_symbol": "IN",
         "configuration": {
             "instructions": (
-                "You are ElastiPath Inspector. Evaluate agency posts for fraud risk.\n\n"
+                "You are Carryover Inspector. Evaluate agency posts for fraud risk.\n\n"
                 "Tool usage: index-search tools (inspector.scam_pattern_match, "
                 "advisor.visa_policy_search) take ONE required string parameter `nlQuery`. "
                 "Always fill it — pass the suspicious post text to scam_pattern_match and "
@@ -365,10 +365,10 @@ def _already_exists(e: httpx.HTTPStatusError) -> bool:
 
 
 async def setup_all_tools():
-    """Create (or update) all ElastiPath tools in Agent Builder — idempotent,
+    """Create (or update) all Carryover tools in Agent Builder — idempotent,
     so re-running /api/setup pushes description/instruction fixes to Kibana."""
     results = {}
-    for tool in ELASTIPATH_TOOLS:
+    for tool in CARRYOVER_TOOLS:
         try:
             await create_tool(tool)
             results[tool["id"]] = "created"
@@ -385,9 +385,16 @@ async def setup_all_tools():
 
 
 async def setup_all_agents():
-    """Create (or update) all ElastiPath agents in Agent Builder."""
+    """Create (or update) all Carryover agents in Agent Builder."""
     results = {}
-    for agent in ELASTIPATH_AGENTS:
+    # Drop the pre-rename agents so Kibana doesn't show duplicates.
+    for legacy in ("elastipath-advisor", "elastipath-inspector"):
+        try:
+            await delete_agent(legacy)
+            results[legacy] = "removed (renamed to carryover-*)"
+        except httpx.HTTPStatusError:
+            pass  # already gone
+    for agent in CARRYOVER_AGENTS:
         try:
             await create_agent(agent)
             results[agent["id"]] = "created"

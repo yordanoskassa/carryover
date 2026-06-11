@@ -137,7 +137,7 @@ INDEX_MAPPINGS = {
 
 
 def create_indices():
-    """Create all ElastiPath indices with proper mappings."""
+    """Create all Carryover indices with proper mappings."""
     results = {}
     for index_name, mapping in INDEX_MAPPINGS.items():
         if es.indices.exists(index=index_name):

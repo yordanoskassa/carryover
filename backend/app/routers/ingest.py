@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/ingest", tags=["ingest"])
 
 @router.post("/setup")
 async def setup_indices():
-    """Create all ElastiPath Elasticsearch indices."""
+    """Create all Carryover Elasticsearch indices."""
     results = create_indices()
     return {"indices": results}
 
@@ -92,7 +92,7 @@ async def upload_csv(index_name: str, file: UploadFile = File(...)):
 
 @router.get("/stats")
 async def ingest_stats():
-    """Get document counts across all ElastiPath indices."""
+    """Get document counts across all Carryover indices."""
     indices = ["visa-policies", "known-scams", "agency-posts", "policy-history", "user-subscriptions"]
     counts = {}
     for idx in indices:

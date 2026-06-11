@@ -432,7 +432,7 @@ async def ask_advisor(req: AdvisorRequest, question: str = ""):
         f"for {req.purpose}. {question or 'What are the visa requirements?'}"
     )
     try:
-        result = await agent_builder.chat("elastipath-advisor", message)
+        result = await agent_builder.chat("carryover-advisor", message)
         return result
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Agent Builder error: {str(e)}")

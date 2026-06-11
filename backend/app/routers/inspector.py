@@ -221,7 +221,7 @@ async def evaluate_via_agent(req: InspectorRequest):
     if req.corridor:
         message += f"\nCorridor: {req.corridor}"
     try:
-        result = await agent_builder.chat("elastipath-inspector", message)
+        result = await agent_builder.chat("carryover-inspector", message)
         return result
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Agent Builder error: {str(e)}")
