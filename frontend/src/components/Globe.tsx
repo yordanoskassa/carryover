@@ -1,25 +1,10 @@
 import { useEffect, useRef } from 'react';
 import createGlobe from 'cobe';
 
-const COORDS: Record<string, [number, number]> = {
-  ET: [9.1, 40.5],
-  NG: [9.1, 7.5],
-  IN: [20.6, 78.9],
-  NP: [28.4, 84.1],
-  PH: [12.9, 121.8],
-  BD: [23.7, 90.4],
-  KE: [0.0, 37.9],
-  GH: [7.9, -1.0],
-  PK: [30.4, 69.3],
-  EG: [26.8, 30.8],
-  GB: [55.4, -3.4],
-  US: [37.1, -95.7],
-  CA: [56.1, -106.3],
-  DE: [51.2, 10.5],
-  AU: [-25.3, 133.8],
-  FR: [46.2, 2.2],
-  NL: [52.1, 5.3],
-  SE: [60.1, 18.6],
+// Longitude used only to start the rotation over the user's origin region.
+const START_LON: Record<string, number> = {
+  ET: 40.5, NG: 7.5, IN: 78.9, NP: 84.1, PH: 121.8,
+  BD: 90.4, KE: 37.9, GH: -1.0, PK: 69.3, EG: 30.8,
 };
 
 interface GlobeProps {
@@ -27,7 +12,7 @@ interface GlobeProps {
   destination: string;
 }
 
-export default function Globe({ nationality, destination }: GlobeProps) {
+export default function Globe({ nationality }: GlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const phiRef = useRef(0);
   const widthRef = useRef(0);
@@ -37,16 +22,8 @@ export default function Globe({ nationality, destination }: GlobeProps) {
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const origin = COORDS[nationality] || [9.1, 40.5];
-    const dest = COORDS[destination] || [55.4, -3.4];
-
-    const startPhi = (-origin[1] * Math.PI) / 180 + Math.PI / 6;
+    const startPhi = (-(START_LON[nationality] ?? 40.5) * Math.PI) / 180 + Math.PI / 6;
     phiRef.current = startPhi;
-
-    const markers = [
-      { location: origin as [number, number], size: 0.08 },
-      { location: dest as [number, number], size: 0.14 },
-    ];
 
     const onResize = () => {
       if (canvasRef.current) {
@@ -69,7 +46,7 @@ export default function Globe({ nationality, destination }: GlobeProps) {
       baseColor: [0.2, 0.32, 0.34],
       markerColor: [0.15, 1, 0.82],
       glowColor: [0.05, 0.55, 0.46],
-      markers,
+      markers: [],
     });
 
     let frameId: number;
@@ -91,7 +68,7 @@ export default function Globe({ nationality, destination }: GlobeProps) {
       globe.destroy();
       window.removeEventListener('resize', onResize);
     };
-  }, [nationality, destination]);
+  }, [nationality]);
 
   return (
     <div className="relative w-full flex items-center justify-center" style={{ maxWidth: 124 }}>
