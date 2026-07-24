@@ -228,17 +228,22 @@ export default function App() {
     <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden relative">
       {!onboarded && <Onboarding countries={COUNTRIES} onComplete={completeOnboarding} />}
       {/* ── Hackathon winner banner ── */}
-      <div className="shrink-0 z-50 flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-[#1a1a1a] border-b-2 border-[#4285F4] shadow-sm">
+      <a
+        href="https://devpost.com/software/carrover"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="shrink-0 z-50 flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-[#1a1a1a] border-b-2 border-[#4285F4] shadow-sm hover:bg-neutral-100 transition-colors"
+      >
         <GoogleCloudIcon size={18} />
         <span className="text-xs sm:text-sm font-semibold tracking-tight">
           <span className="text-[#4285F4]">Google</span>{' '}
-          <span className="text-[#EA4335]">Cloud</span>{' '}
-          Rapid Agent Hackathon —{' '}
+          <span className="text-black">Cloud</span>{' '}
+          Rapid Agent Hackathon -{' '}
         </span>
         <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#34A853]">
           🏆 Winner
         </span>
-      </div>
+      </a>
       {/* ── Header ── */}
       <header className="border-b shrink-0 z-50">
         <div className="mx-auto px-5 h-12 flex items-center justify-between">
