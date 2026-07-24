@@ -229,7 +229,7 @@ export default function App() {
       {!onboarded && <Onboarding countries={COUNTRIES} onComplete={completeOnboarding} />}
       {/* ── Hackathon winner banner ── */}
       <a
-        href="https://devpost.com/software/carrover"
+        href="https://devpost.com/software/carryover"
         target="_blank"
         rel="noopener noreferrer"
         className="shrink-0 z-50 flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-[#1a1a1a] border-b-2 border-[#4285F4] shadow-sm hover:bg-neutral-100 transition-colors"
