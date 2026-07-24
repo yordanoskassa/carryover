@@ -16,6 +16,18 @@ function ElasticIcon({ size = 18, className = '' }: { size?: number; className?:
   );
 }
 
+// Official Google Cloud mark — hackathon winner co-branding.
+function GoogleCloudIcon({ size = 20, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-label="Google Cloud">
+      <path d="M14.9 8.4h.55l1.57-1.57.08-.67a7.1 7.1 0 0 0-11.6 3.44 .87.87 0 0 1 .55-.03l3.14-.52s.16-.27.24-.25a3.94 3.94 0 0 1 5.47-.4z" fill="#EA4335"/>
+      <path d="M19.63 9.6a7.11 7.11 0 0 0-2.15-3.45l-2.22 2.22a3.94 3.94 0 0 1 1.45 3.13v.39a1.97 1.97 0 0 1 0 3.94h-3.94l-.39.4v2.36l.39.39h3.94a5.12 5.12 0 0 0 3.28-9.38z" fill="#4285F4"/>
+      <path d="M8.83 19.38h3.94v-3.16H8.83a1.96 1.96 0 0 1-.81-.18l-.56.17-1.58 1.58-.14.53a5.1 5.1 0 0 0 3.09 1.06z" fill="#34A853"/>
+      <path d="M8.83 8.66a5.12 5.12 0 0 0-3.09 9.16l2.28-2.28a1.97 1.97 0 1 1 2.6-2.6l2.28-2.28a5.11 5.11 0 0 0-4.07-1.99z" fill="#FBBC05"/>
+    </svg>
+  );
+}
+
 function BridgeIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
@@ -215,6 +227,18 @@ export default function App() {
   return (
     <div className="h-[100dvh] flex flex-col bg-background text-foreground overflow-hidden relative">
       {!onboarded && <Onboarding countries={COUNTRIES} onComplete={completeOnboarding} />}
+      {/* ── Hackathon winner banner ── */}
+      <div className="shrink-0 z-50 flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-[#1a1a1a] border-b-2 border-[#4285F4] shadow-sm">
+        <GoogleCloudIcon size={18} />
+        <span className="text-xs sm:text-sm font-semibold tracking-tight">
+          <span className="text-[#4285F4]">Google</span>{' '}
+          <span className="text-[#EA4335]">Cloud</span>{' '}
+          Rapid Agent Hackathon —{' '}
+        </span>
+        <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#34A853]">
+          🏆 Winner
+        </span>
+      </div>
       {/* ── Header ── */}
       <header className="border-b shrink-0 z-50">
         <div className="mx-auto px-5 h-12 flex items-center justify-between">
